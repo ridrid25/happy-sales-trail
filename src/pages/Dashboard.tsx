@@ -2,10 +2,10 @@ import { Link } from "react-router-dom";
 import {
   managers, redFlags, monthPlan, monthFact, monthForecast, planMargin, factMargin,
   planPayments, factPayments, totalReceivable, overdueReceivable, avgPaymentDays,
-  forecastIncoming, deals, formatRub, formatShort, riskColor
+  forecastIncoming, deals, formatRub, formatShort, riskColor, cashGap, avgQualityIndex
 } from "@/data/demo";
 import { Card, PageHeader, Stat, Badge, ProgressBar } from "@/components/ui-bits";
-import { AlertTriangle, TrendingUp, Wallet, Target, Activity, ShieldAlert, ArrowRight } from "lucide-react";
+import { AlertTriangle, TrendingUp, Wallet, Target, Activity, ShieldAlert, ArrowRight, ArrowRightCircle } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid, Cell
 } from "recharts";
