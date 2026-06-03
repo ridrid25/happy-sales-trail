@@ -82,7 +82,7 @@ export const avgPaymentDays = 34;
 export const forecastIncoming = 19_100_000;
 export const plannedOutflow = 21_400_000; // плановые расходы и обязательства месяца
 export const cashGap = plannedOutflow - forecastIncoming; // 2,3 млн ₽
-export const avgQualityIndex = Math.round(managers.reduce((s, m) => s + m.qualityIndex, 0) / managers.length); // вычисляется ниже после managers
+export const avgQualityIndex = 67; // среднее по команде
 
 export const managers: Manager[] = [
   {
