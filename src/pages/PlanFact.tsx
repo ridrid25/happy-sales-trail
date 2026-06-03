@@ -74,8 +74,8 @@ export default function PlanFact() {
   );
 }
 
-function Row({ label, value, tone = "default" }: { label: string; value: string; tone?: "default" | "success" | "danger" }) {
-  const cls = { default: "", success: "text-success", danger: "text-destructive" }[tone];
+function Row({ label, value, tone = "default" }: { label: string; value: string; tone?: "default" | "success" | "danger" | "warning" }) {
+  const cls = { default: "", success: "text-success", danger: "text-destructive", warning: "text-warning" }[tone];
   return (
     <div>
       <div className="text-[11px] text-muted-foreground">{label}</div>
