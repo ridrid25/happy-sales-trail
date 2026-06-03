@@ -28,6 +28,19 @@ export default function Dashboard() {
         subtitle="Качество продаж = выручка × маржа × оплаты. Май 2026"
       />
 
+      {/* Storyline — главная связка продукта */}
+      <Card className="mb-6 bg-gradient-to-r from-header to-header/95 border-header text-white">
+        <div className="text-[11px] uppercase tracking-wider text-white/60 mb-3">Связка качества продаж</div>
+        <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 lg:gap-2 items-stretch">
+          <StoryStep label="Продано" value={formatShort(monthFact) + " ₽"} hint={`${Math.round(monthFact/monthPlan*100)}% плана`} />
+          <StoryStep label="Валовая маржа" value={formatShort(factMargin) + " ₽"} hint="22,4% средняя" />
+          <StoryStep label="Оплачено" value={formatShort(factPayments) + " ₽"} hint={`${Math.round(factPayments/monthFact*100)}% выручки`} />
+          <StoryStep label="Дебиторка" value={formatShort(totalReceivable) + " ₽"} hint={`срок ${avgPaymentDays} дн`} />
+          <StoryStep label="Просрочка" value={formatShort(overdueReceivable) + " ₽"} hint={`${Math.round(overdueReceivable/totalReceivable*100)}% дебиторки`} tone="danger" />
+          <StoryStep label="Риск кассового разрыва" value={formatShort(cashGap) + " ₽"} hint="к концу месяца" tone="danger" />
+        </div>
+      </Card>
+
       {/* 4 блока */}
       <div className="space-y-6">
         {/* 1. Результат продаж */}
@@ -38,7 +51,7 @@ export default function Dashboard() {
             <Stat label="Факт продаж" value={formatShort(monthFact) + " ₽"} hint={`${planPct}% плана`} tone={planPct >= 95 ? "success" : "warning"} />
             <Stat label="Выполнение плана" value={planPct + "%"} hint={<ProgressBar value={planPct} tone={planPct >= 95 ? "success" : "warning"} />} />
             <Stat label="Прогноз до конца" value={formatShort(monthForecast) + " ₽"} hint={`${Math.round(monthForecast / monthPlan * 100)}% плана`} />
-            <Stat label="Отклонение" value={formatShort(monthFact - monthPlan) + " ₽"} tone="danger" hint="к плану месяца" />
+            <Stat label="Индекс качества продаж" value={avgQualityIndex + "/100"} tone={avgQualityIndex >= 75 ? "success" : avgQualityIndex >= 60 ? "warning" : "danger"} hint="средний по команде" />
           </div>
         </section>
 
