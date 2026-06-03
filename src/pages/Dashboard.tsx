@@ -162,7 +162,7 @@ export default function Dashboard() {
         {/* Менеджеры — быстрый обзор */}
         <Card
           title="Менеджеры — качество продаж"
-          subtitle="Не путать с лидербордом: оценка по марже и оплатам"
+          subtitle="Управленческий рейтинг по марже и оплатам, а не по выручке"
           action={<Link to="/managers" className="text-sm text-accent hover:underline flex items-center gap-1">Все менеджеры <ArrowRight className="h-3.5 w-3.5" /></Link>}
         >
           <div className="overflow-x-auto -mx-5 px-5 scrollbar-thin">
@@ -205,6 +205,17 @@ function SectionTitle({ icon, title }: { icon: React.ReactNode; title: string })
     <div className="flex items-center gap-2 text-sm font-semibold text-foreground/80">
       <span className="text-accent">{icon}</span>
       <span className="uppercase tracking-wide text-xs">{title}</span>
+    </div>
+  );
+}
+
+function StoryStep({ label, value, hint, tone = "default" }: { label: string; value: string; hint?: string; tone?: "default" | "danger" }) {
+  const valueCls = tone === "danger" ? "text-destructive-foreground bg-destructive/30 px-1.5 rounded" : "text-white";
+  return (
+    <div className="relative px-3 py-2.5 rounded-md bg-white/[0.04] border border-white/10">
+      <div className="text-[10px] uppercase tracking-wider text-white/55 mb-1">{label}</div>
+      <div className={`font-display font-semibold text-base lg:text-lg num leading-tight ${valueCls}`}>{value}</div>
+      {hint && <div className="text-[10px] text-white/55 mt-0.5">{hint}</div>}
     </div>
   );
 }
