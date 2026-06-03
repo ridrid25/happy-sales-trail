@@ -27,12 +27,36 @@ export default function ManagerProfile() {
         actions={<Badge className={riskColor[m.risk]}>{m.risk}</Badge>}
       />
 
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
-        <Stat label="Факт / план" value={`${planPct}%`} hint={`${formatShort(m.fact)} / ${formatShort(m.plan)} ₽`} tone={planPct >= 100 ? "success" : "warning"} />
-        <Stat label="Оплачено" value={formatShort(m.paid) + " ₽"} hint={`${paidPct}% от факта`} tone={paidPct >= 80 ? "success" : "warning"} />
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-6">
+        <Stat label="Факт / план выручки" value={`${planPct}%`} hint={`${formatShort(m.fact)} / ${formatShort(m.plan)} ₽`} tone={planPct >= 100 ? "success" : "warning"} />
+        <Stat label="Оплачено / факт" value={`${paidPct}%`} hint={`${formatShort(m.paid)} ₽`} tone={paidPct >= 80 ? "success" : "warning"} />
         <Stat label="Маржа" value={m.marginPct + "%"} hint={`${formatShort(m.margin)} ₽`} tone={m.marginPct >= 20 ? "success" : "warning"} />
         <Stat label="Дебиторка" value={formatShort(m.receivable) + " ₽"} />
         <Stat label="Просрочка" value={formatShort(m.overdue) + " ₽"} tone="danger" hint={`${overduePct}% выручки`} />
+        <Stat label="Индекс качества" value={`${m.qualityIndex}/100`} tone={m.qualityIndex >= 75 ? "success" : m.qualityIndex >= 60 ? "warning" : "danger"} />
+      </div>
+
+      {/* Управленческий вывод */}
+      <Card className={`mb-6 border-l-4 ${isRisk ? "border-l-destructive" : "border-l-success"}`} title="Управленческий вывод">
+        <p className="text-sm text-foreground/90 leading-relaxed">
+          {isRisk ? (
+            <>Менеджер {planPct >= 100 ? "выполняет план по выручке" : `отстаёт от плана (${planPct}%)`}, но <span className="font-semibold text-destructive">качество продаж в зоне {m.risk}</span>: {100 - paidPct}% выручки не оплачено, средняя маржа {m.marginPct}% {m.marginPct < 20 ? "ниже целевой 20%" : "в пределах нормы"}, просроченная дебиторка {formatShort(m.overdue)} ₽ ({overduePct}% выручки). Средний срок оплаты {m.avgPaymentDays} дн при норме 21 дн. <span className="font-medium">Рекомендуется ограничить отсрочку по новым сделкам и разобрать условия с {overdueClients.length || 3} крупнейшими клиентами.</span></>
+          ) : (
+            <>Менеджер показывает <span className="font-semibold text-success">высокое качество продаж</span>: план по выручке выполнен на {planPct}%, оплачено {paidPct}% факта, маржа {m.marginPct}%, просрочка {overduePct}% выручки. Портфель клиентов устойчивый, риск кассового разрыва минимальный.</>
+          )}
+        </p>
+      </Card>
+
+      {/* План-факт: выручка vs оплаты */}
+      <div className="grid md:grid-cols-2 gap-3 mb-6">
+        <Card title="План-факт по выручке" subtitle="что продано">
+          <Stat label="План" value={formatShort(m.plan) + " ₽"} />
+          <div className="mt-2"><Stat label="Факт" value={formatShort(m.fact) + " ₽"} tone={planPct >= 100 ? "success" : "warning"} hint={<ProgressBar value={Math.min(planPct, 100)} tone={planPct >= 100 ? "success" : "warning"} />} /></div>
+        </Card>
+        <Card title="План-факт по оплатам" subtitle="что реально получено деньгами">
+          <Stat label="План оплат" value={formatShort(m.plan * 0.8) + " ₽"} hint="≈80% выручки" />
+          <div className="mt-2"><Stat label="Факт оплат" value={formatShort(m.paid) + " ₽"} tone={m.paid >= m.plan * 0.8 ? "success" : "danger"} hint={<ProgressBar value={Math.round(m.paid / (m.plan * 0.8) * 100)} tone={m.paid >= m.plan * 0.8 ? "success" : "danger"} />} /></div>
+        </Card>
       </div>
 
       {/* Сценарий риска */}

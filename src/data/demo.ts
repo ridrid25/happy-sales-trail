@@ -80,6 +80,9 @@ export const totalReceivable = 8_420_000;
 export const overdueReceivable = 2_980_000;
 export const avgPaymentDays = 34;
 export const forecastIncoming = 19_100_000;
+export const plannedOutflow = 21_400_000; // плановые расходы и обязательства месяца
+export const cashGap = plannedOutflow - forecastIncoming; // 2,3 млн ₽
+export const avgQualityIndex = 67; // среднее по команде
 
 export const managers: Manager[] = [
   {
@@ -240,13 +243,72 @@ export const deals: Deal[] = [
   mkDeal("d40", "Полюс Тех", "Алексей Петров", 240_000, 190_000, "Потеряна", "—", "—", 0, 0, "ожидает", "—"),
 ];
 
-export const redFlags = [
-  { title: "Менеджер Иван Иванов выполнил план на 118%, но 42% продаж не оплачено", severity: "high" as const, area: "Менеджеры" },
-  { title: "5 сделок проданы ниже минимальной маржи (15%)", severity: "high" as const, area: "Маржа" },
-  { title: "Клиент «Альфа Логистика» имеет просрочку 620 000 ₽ и просит новую отгрузку", severity: "high" as const, area: "Клиенты" },
-  { title: "Прогноз поступлений ниже плана на 900 000 ₽", severity: "medium" as const, area: "Деньги" },
-  { title: "38% ожидаемых оплат завязаны на клиентов с просрочкой", severity: "medium" as const, area: "Риски" },
-  { title: "Отдел выполнил план по выручке, но не выполнил план по оплатам", severity: "medium" as const, area: "План-факт" },
+export type RedFlag = {
+  title: string;
+  severity: "high" | "medium";
+  area: string;
+  amount?: string;
+  who?: string;
+  action: string;
+};
+
+export const redFlags: RedFlag[] = [
+  {
+    title: "Менеджер выполнил план по выручке, но провалил план по оплатам",
+    severity: "high", area: "Менеджеры",
+    amount: "118% плана продаж · 58% плана оплат",
+    who: "Иван Иванов",
+    action: "Ввести KPI по оплаченной выручке, ограничить отсрочку по новым сделкам",
+  },
+  {
+    title: "Крупный клиент с просрочкой просит новую сделку с отсрочкой",
+    severity: "high", area: "Клиенты",
+    amount: "Просрочка 620 000 ₽ · новая сделка 580 000 ₽",
+    who: "«Альфа Логистика» (Иван Иванов)",
+    action: "Заблокировать отгрузку до согласования с финдиректором",
+  },
+  {
+    title: "Сделки проданы ниже минимальной маржи",
+    severity: "high", area: "Маржа",
+    amount: "5 сделок · средняя маржа 11,8%",
+    who: "Иван Иванов (4), Сергей Минин (1)",
+    action: "Разбор скидок, утвердить регламент минимальной маржи 15%",
+  },
+  {
+    title: "Менеджер продаёт много, но создаёт рост дебиторки",
+    severity: "high", area: "Качество продаж",
+    amount: "Дебиторка 2,98 млн ₽ · просрочка 1,24 млн ₽",
+    who: "Иван Иванов",
+    action: "Перевод части портфеля на предоплату, разбор 3 крупнейших клиентов",
+  },
+  {
+    title: "Прогноз оплат ниже плана — риск кассового разрыва",
+    severity: "high", area: "Деньги",
+    amount: "Разрыв 2,3 млн ₽ к концу месяца",
+    who: "Финдиректор",
+    action: "Ускорить сбор дебиторки, перенести часть платежей поставщикам",
+  },
+  {
+    title: "Часть выручки месяца не оплачена",
+    severity: "medium", area: "План-факт",
+    amount: "7,15 млн ₽ (29% факта) · план оплат выполнен на 78%",
+    who: "Отдел продаж",
+    action: "Разобрать сделки с отсрочкой > 14 дн, ускорить выставление документов",
+  },
+  {
+    title: "Клиенты в статусе «риск» / «стоп» продолжают получать отгрузки",
+    severity: "medium", area: "Клиенты",
+    amount: "3 клиента · 1,87 млн ₽ просрочки",
+    who: "«Альфа Логистика», «ТрейдГранд», «Лига Ритейл»",
+    action: "Закрыть отгрузку до погашения просрочки",
+  },
+  {
+    title: "Сделки без следующего действия больше 7 дней",
+    severity: "medium", area: "Воронка",
+    amount: "6 сделок на 4,2 млн ₽",
+    who: "Алексей Петров (3), Сергей Минин (2), Екатерина Лаврова (1)",
+    action: "Назначить следующий шаг по каждой сделке до конца дня",
+  },
 ];
 
 export const funnelStages: { stage: Stage; count: number; amount: number; conversion: number; avgDays: number; overdueActions: number; expectedMargin: number; expectedPayments: number }[] = [

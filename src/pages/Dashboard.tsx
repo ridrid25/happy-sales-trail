@@ -2,10 +2,10 @@ import { Link } from "react-router-dom";
 import {
   managers, redFlags, monthPlan, monthFact, monthForecast, planMargin, factMargin,
   planPayments, factPayments, totalReceivable, overdueReceivable, avgPaymentDays,
-  forecastIncoming, deals, formatRub, formatShort, riskColor
+  forecastIncoming, deals, formatRub, formatShort, riskColor, cashGap, avgQualityIndex
 } from "@/data/demo";
 import { Card, PageHeader, Stat, Badge, ProgressBar } from "@/components/ui-bits";
-import { AlertTriangle, TrendingUp, Wallet, Target, Activity, ShieldAlert, ArrowRight } from "lucide-react";
+import { AlertTriangle, TrendingUp, Wallet, Target, Activity, ShieldAlert, ArrowRight, ArrowRightCircle } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid, Cell
 } from "recharts";
@@ -28,6 +28,19 @@ export default function Dashboard() {
         subtitle="Качество продаж = выручка × маржа × оплаты. Май 2026"
       />
 
+      {/* Storyline — главная связка продукта */}
+      <Card className="mb-6 bg-gradient-to-r from-header to-header/95 border-header text-white">
+        <div className="text-[11px] uppercase tracking-wider text-white/60 mb-3">Связка качества продаж</div>
+        <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 lg:gap-2 items-stretch">
+          <StoryStep label="Продано" value={formatShort(monthFact) + " ₽"} hint={`${Math.round(monthFact/monthPlan*100)}% плана`} />
+          <StoryStep label="Валовая маржа" value={formatShort(factMargin) + " ₽"} hint="22,4% средняя" />
+          <StoryStep label="Оплачено" value={formatShort(factPayments) + " ₽"} hint={`${Math.round(factPayments/monthFact*100)}% выручки`} />
+          <StoryStep label="Дебиторка" value={formatShort(totalReceivable) + " ₽"} hint={`срок ${avgPaymentDays} дн`} />
+          <StoryStep label="Просрочка" value={formatShort(overdueReceivable) + " ₽"} hint={`${Math.round(overdueReceivable/totalReceivable*100)}% дебиторки`} tone="danger" />
+          <StoryStep label="Риск кассового разрыва" value={formatShort(cashGap) + " ₽"} hint="к концу месяца" tone="danger" />
+        </div>
+      </Card>
+
       {/* 4 блока */}
       <div className="space-y-6">
         {/* 1. Результат продаж */}
@@ -38,7 +51,7 @@ export default function Dashboard() {
             <Stat label="Факт продаж" value={formatShort(monthFact) + " ₽"} hint={`${planPct}% плана`} tone={planPct >= 95 ? "success" : "warning"} />
             <Stat label="Выполнение плана" value={planPct + "%"} hint={<ProgressBar value={planPct} tone={planPct >= 95 ? "success" : "warning"} />} />
             <Stat label="Прогноз до конца" value={formatShort(monthForecast) + " ₽"} hint={`${Math.round(monthForecast / monthPlan * 100)}% плана`} />
-            <Stat label="Отклонение" value={formatShort(monthFact - monthPlan) + " ₽"} tone="danger" hint="к плану месяца" />
+            <Stat label="Индекс качества продаж" value={avgQualityIndex + "/100"} tone={avgQualityIndex >= 75 ? "success" : avgQualityIndex >= 60 ? "warning" : "danger"} hint="средний по команде" />
           </div>
         </section>
 
@@ -82,18 +95,26 @@ export default function Dashboard() {
         {/* Красные флаги — главный блок */}
         <Card
           title={<span className="flex items-center gap-2"><AlertTriangle className="h-5 w-5 text-destructive" /> Красные флаги</span>}
-          subtitle="Требуют управленческого решения"
+          subtitle="Проблема · Сумма · Кого касается · Рекомендуемое действие"
         >
-          <div className="space-y-2">
+          <div className="grid md:grid-cols-2 gap-2">
             {redFlags.map((f, i) => (
-              <div key={i} className={`border-l-2 ${severityCls[f.severity]} px-4 py-3 rounded-r-md flex items-start justify-between gap-3`}>
-                <div>
-                  <div className="text-sm font-medium leading-snug">{f.title}</div>
-                  <div className="text-[11px] text-muted-foreground mt-0.5">{f.area}</div>
+              <div key={i} className={`border-l-2 ${severityCls[f.severity]} px-4 py-3 rounded-r-md`}>
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="text-sm font-semibold leading-snug">{f.title}</div>
+                  <Badge className={f.severity === "high" ? "bg-destructive/10 text-destructive border-destructive/30 shrink-0" : "bg-warning/10 text-warning border-warning/30 shrink-0"}>
+                    {f.severity === "high" ? "Высокий" : "Средний"}
+                  </Badge>
                 </div>
-                <Badge className={f.severity === "high" ? "bg-destructive/10 text-destructive border-destructive/30" : "bg-warning/10 text-warning border-warning/30"}>
-                  {f.severity === "high" ? "Высокий" : "Средний"}
-                </Badge>
+                <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] mb-2">
+                  {f.amount && (<><div className="text-muted-foreground">Сумма / показатель</div><div className="num font-medium text-right">{f.amount}</div></>)}
+                  {f.who && (<><div className="text-muted-foreground">Кого касается</div><div className="font-medium text-right">{f.who}</div></>)}
+                  <div className="text-muted-foreground">Область</div><div className="text-right">{f.area}</div>
+                </div>
+                <div className="flex items-start gap-1.5 text-[12px] text-foreground/85 border-t border-border/60 pt-2">
+                  <ArrowRightCircle className="h-3.5 w-3.5 text-accent shrink-0 mt-0.5" />
+                  <span><span className="text-muted-foreground">Действие:</span> {f.action}</span>
+                </div>
               </div>
             ))}
           </div>
@@ -141,7 +162,7 @@ export default function Dashboard() {
         {/* Менеджеры — быстрый обзор */}
         <Card
           title="Менеджеры — качество продаж"
-          subtitle="Не путать с лидербордом: оценка по марже и оплатам"
+          subtitle="Управленческий рейтинг по марже и оплатам, а не по выручке"
           action={<Link to="/managers" className="text-sm text-accent hover:underline flex items-center gap-1">Все менеджеры <ArrowRight className="h-3.5 w-3.5" /></Link>}
         >
           <div className="overflow-x-auto -mx-5 px-5 scrollbar-thin">
@@ -184,6 +205,17 @@ function SectionTitle({ icon, title }: { icon: React.ReactNode; title: string })
     <div className="flex items-center gap-2 text-sm font-semibold text-foreground/80">
       <span className="text-accent">{icon}</span>
       <span className="uppercase tracking-wide text-xs">{title}</span>
+    </div>
+  );
+}
+
+function StoryStep({ label, value, hint, tone = "default" }: { label: string; value: string; hint?: string; tone?: "default" | "danger" }) {
+  const valueCls = tone === "danger" ? "text-destructive-foreground bg-destructive/30 px-1.5 rounded" : "text-white";
+  return (
+    <div className="relative px-3 py-2.5 rounded-md bg-white/[0.04] border border-white/10">
+      <div className="text-[10px] uppercase tracking-wider text-white/55 mb-1">{label}</div>
+      <div className={`font-display font-semibold text-base lg:text-lg num leading-tight ${valueCls}`}>{value}</div>
+      {hint && <div className="text-[10px] text-white/55 mt-0.5">{hint}</div>}
     </div>
   );
 }
