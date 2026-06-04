@@ -25,6 +25,7 @@ export default function AppLayout() {
   const [open, setOpen] = useState(false);
   const [role, setRole] = useState("Собственник");
   const location = useLocation();
+  const { theme, toggle } = useTheme();
 
   return (
     <div className="min-h-screen bg-background">
