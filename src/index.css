@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Контроль качества продаж — premium light B2B dashboard. All colors HSL. */
+/* Контроль качества продаж — premium B2B dashboard. All colors HSL. */
 
 @layer base {
   :root {
@@ -59,6 +59,60 @@
     --sidebar-accent-foreground: 0 0% 100%;
     --sidebar-border: 222 35% 22%;
     --sidebar-ring: 215 60% 55%;
+  }
+
+  .dark {
+    --background: 222 30% 8%;
+    --foreground: 220 15% 92%;
+
+    --card: 222 28% 11%;
+    --card-foreground: 220 15% 92%;
+
+    --popover: 222 28% 11%;
+    --popover-foreground: 220 15% 92%;
+
+    --primary: 220 15% 92%;
+    --primary-foreground: 222 35% 12%;
+
+    --secondary: 222 25% 16%;
+    --secondary-foreground: 220 15% 92%;
+
+    --muted: 222 25% 15%;
+    --muted-foreground: 220 12% 62%;
+
+    --accent: 215 70% 60%;
+    --accent-foreground: 222 35% 10%;
+
+    --destructive: 0 70% 58%;
+    --destructive-foreground: 0 0% 100%;
+
+    --warning: 38 92% 58%;
+    --warning-foreground: 30 50% 8%;
+
+    --success: 152 50% 48%;
+    --success-foreground: 0 0% 100%;
+
+    --gold: 42 70% 58%;
+    --gold-soft: 42 30% 18%;
+
+    --border: 222 22% 20%;
+    --input: 222 22% 20%;
+    --ring: 215 70% 60%;
+
+    --header: 222 35% 10%;
+    --header-foreground: 220 15% 92%;
+
+    --shadow-card: 0 1px 2px 0 hsl(0 0% 0% / 0.3), 0 1px 1px 0 hsl(0 0% 0% / 0.2);
+    --shadow-elevated: 0 4px 16px -4px hsl(0 0% 0% / 0.5), 0 2px 4px -2px hsl(0 0% 0% / 0.4);
+
+    --sidebar-background: 222 35% 10%;
+    --sidebar-foreground: 220 15% 80%;
+    --sidebar-primary: 42 70% 58%;
+    --sidebar-primary-foreground: 222 35% 10%;
+    --sidebar-accent: 222 28% 18%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 222 25% 18%;
+    --sidebar-ring: 215 70% 60%;
   }
 }
 

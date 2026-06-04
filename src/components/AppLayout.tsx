@@ -2,9 +2,10 @@ import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useState } from "react";
 import {
   LayoutDashboard, Users, Briefcase, GitBranch, Wallet, Building2,
-  Target, ClipboardCheck, LineChart, Menu, X, ShieldCheck
+  Target, ClipboardCheck, LineChart, Menu, X, ShieldCheck, Sun, Moon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/components/ThemeProvider";
 
 const nav = [
   { to: "/", label: "Дашборд", icon: LayoutDashboard, end: true },
@@ -24,6 +25,7 @@ export default function AppLayout() {
   const [open, setOpen] = useState(false);
   const [role, setRole] = useState("Собственник");
   const location = useLocation();
+  const { theme, toggle } = useTheme();
 
   return (
     <div className="min-h-screen bg-background">
@@ -49,13 +51,21 @@ export default function AppLayout() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={toggle}
+              className="p-2 rounded-md bg-white/5 hover:bg-white/10 text-white/80 hover:text-white transition-colors border border-white/10"
+              aria-label={theme === "dark" ? "Включить светлую тему" : "Включить тёмную тему"}
+              title={theme === "dark" ? "Светлая тема" : "Тёмная тема"}
+            >
+              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </button>
             <select
               value={role}
               onChange={(e) => setRole(e.target.value)}
               className="bg-white/5 border border-white/10 text-white text-sm rounded-md px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-gold"
               aria-label="Роль"
             >
-              {roles.map((r) => <option key={r} value={r} className="text-foreground">{r}</option>)}
+              {roles.map((r) => <option key={r} value={r} className="text-foreground bg-card">{r}</option>)}
             </select>
             <div className="hidden md:flex items-center gap-2 pl-3 border-l border-white/10">
               <div className="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center text-xs font-semibold">
