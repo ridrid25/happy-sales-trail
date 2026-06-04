@@ -35,12 +35,16 @@ export default function Variance() {
                 <div className="num font-semibold text-destructive">{v.deviation}</div>
               </div>
               <div className="lg:col-span-3">
-                <div className="text-[10px] uppercase text-muted-foreground mb-1">Возможная причина</div>
+                <div className="text-[10px] uppercase text-muted-foreground mb-1">Причина</div>
                 <div className="text-sm">{v.cause}</div>
               </div>
-              <div className="lg:col-span-4">
-                <div className="text-[10px] uppercase text-muted-foreground mb-1">Рекомендуемое действие</div>
+              <div className="lg:col-span-3">
+                <div className="text-[10px] uppercase text-muted-foreground mb-1">Действие</div>
                 <div className="text-sm font-medium text-foreground">{v.action}</div>
+              </div>
+              <div className="lg:col-span-1">
+                <div className="text-[10px] uppercase text-muted-foreground mb-1">Владелец</div>
+                <Badge className="bg-accent/10 text-accent border-accent/20">{v.owner}</Badge>
               </div>
             </div>
           </Card>
