@@ -2,9 +2,10 @@ import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useState } from "react";
 import {
   LayoutDashboard, Users, Briefcase, GitBranch, Wallet, Building2,
-  Target, ClipboardCheck, LineChart, Menu, X, ShieldCheck
+  Target, ClipboardCheck, LineChart, Menu, X, ShieldCheck, Sun, Moon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/components/ThemeProvider";
 
 const nav = [
   { to: "/", label: "Дашборд", icon: LayoutDashboard, end: true },
