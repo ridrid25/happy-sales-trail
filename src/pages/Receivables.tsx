@@ -1,6 +1,6 @@
 import { managers, clients, deals, formatShort, totalReceivable, overdueReceivable, avgPaymentDays, forecastIncoming, riskColor, clientStatusColor, planPayments, factPayments, cashGap, plannedOutflow } from "@/data/demo";
 import { Card, PageHeader, Stat, Badge } from "@/components/ui-bits";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, CheckSquare, Phone, ShieldOff, FileText, Handshake } from "lucide-react";
 
 export default function Receivables() {
   const clientsOverdue = clients.filter(c => c.overdue > 0);
