@@ -150,3 +150,25 @@ function Th({ children, right }: { children: React.ReactNode; right?: boolean })
 function Td({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return <td className={`py-2.5 px-2 text-right num ${className}`}>{children}</td>;
 }
+
+function TodoItem({ icon, text, detail, amount, priority }: { icon: React.ReactNode; text: string; detail: string; amount: string; priority: "критично" | "контроль" }) {
+  const cls = priority === "критично"
+    ? "border-l-destructive bg-destructive/5"
+    : "border-l-warning bg-warning/5";
+  const badgeCls = priority === "критично"
+    ? "bg-destructive/10 text-destructive border-destructive/30"
+    : "bg-warning/10 text-warning border-warning/30";
+  return (
+    <div className={`border-l-2 ${cls} px-3 py-2.5 rounded-r-md`}>
+      <div className="flex items-start justify-between gap-2 mb-1">
+        <div className="flex items-start gap-2">
+          <span className="text-accent mt-0.5">{icon}</span>
+          <div className="text-sm font-semibold leading-snug">{text}</div>
+        </div>
+        <Badge className={`${badgeCls} shrink-0`}>{priority}</Badge>
+      </div>
+      <div className="text-[12px] text-muted-foreground pl-6">{detail}</div>
+      <div className="text-[11px] num font-semibold text-foreground/80 pl-6 mt-0.5">{amount}</div>
+    </div>
+  );
+}
