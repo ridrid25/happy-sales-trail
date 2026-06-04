@@ -227,13 +227,21 @@ function SectionTitle({ icon, title }: { icon: React.ReactNode; title: string })
   );
 }
 
-function StoryStep({ label, value, hint, tone = "default" }: { label: string; value: string; hint?: string; tone?: "default" | "danger" }) {
-  const valueCls = tone === "danger" ? "text-destructive-foreground bg-destructive/30 px-1.5 rounded" : "text-white";
+function StoryStep({ label, value, meaning, status = "норма" }: { label: string; value: string; meaning?: string; status?: "норма" | "контроль" | "критично" }) {
+  const dot = { "норма": "bg-success", "контроль": "bg-warning", "критично": "bg-destructive" }[status];
+  const valueCls = status === "критично" ? "text-white" : status === "контроль" ? "text-white" : "text-white";
+  const ring = status === "критично" ? "ring-1 ring-destructive/40 bg-destructive/10" : "bg-white/[0.04]";
   return (
-    <div className="relative px-3 py-2.5 rounded-md bg-white/[0.04] border border-white/10">
-      <div className="text-[10px] uppercase tracking-wider text-white/55 mb-1">{label}</div>
+    <div className={`relative px-3 py-2.5 rounded-md border border-white/10 ${ring}`}>
+      <div className="flex items-center justify-between gap-2 mb-1">
+        <div className="text-[10px] uppercase tracking-wider text-white/55">{label}</div>
+        <div className="flex items-center gap-1">
+          <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
+          <span className="text-[9px] uppercase tracking-wide text-white/65">{status}</span>
+        </div>
+      </div>
       <div className={`font-display font-semibold text-base lg:text-lg num leading-tight ${valueCls}`}>{value}</div>
-      {hint && <div className="text-[10px] text-white/55 mt-0.5">{hint}</div>}
+      {meaning && <div className="text-[10px] text-white/55 mt-0.5 leading-snug">{meaning}</div>}
     </div>
   );
 }
