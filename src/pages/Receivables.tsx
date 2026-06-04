@@ -49,6 +49,16 @@ export default function Receivables() {
         </div>
       </Card>
 
+      {/* Что делать сегодня */}
+      <Card title={<span className="flex items-center gap-2"><CheckSquare className="h-4 w-4 text-accent" /> Что делать сегодня</span>} subtitle="Конкретные действия для сбора дебиторки и снижения риска" className="mb-4">
+        <div className="grid md:grid-cols-2 gap-2">
+          <TodoItem icon={<Phone className="h-4 w-4" />} priority="критично" text="Связаться с 3 клиентами с просрочкой > 30 дн" detail="«Альфа Логистика» (38 дн), «ТрейдГранд» (44 дн), «Лига Ритейл» (51 дн)" amount="1,82 млн ₽" />
+          <TodoItem icon={<ShieldOff className="h-4 w-4" />} priority="критично" text="Остановить новую отгрузку клиенту со статусом «стоп»" detail="«Альфа Логистика» — заявка на 580 тыс ₽ с отсрочкой 14 дн" amount="580 тыс ₽" />
+          <TodoItem icon={<Handshake className="h-4 w-4" />} priority="контроль" text="Согласовать условия оплаты по клиенту с просрочкой" detail="«Полюс Тех» — частичная оплата, задержка 14 дн. Перевести на предоплату 50%" amount="520 тыс ₽" />
+          <TodoItem icon={<FileText className="h-4 w-4" />} priority="контроль" text="Проверить документы по сделкам, где оплата задерживается" detail="2 сделки: «Лига Ритейл», «Полюс Тех» — закрывающие документы не подписаны" amount="670 тыс ₽" />
+        </div>
+      </Card>
+
       {/* Предупреждения по новым сделкам у клиентов с просрочкой */}
       {riskyWithNewDeal.length > 0 && (
         <Card title="Новые сделки с отсрочкой у клиентов с просрочкой" subtitle="Требуют согласования" className="mb-4">
