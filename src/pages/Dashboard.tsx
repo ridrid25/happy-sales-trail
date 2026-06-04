@@ -21,6 +21,9 @@ const severityCls = {
 const sortedByQuality = [...managers].sort((a, b) => b.qualityIndex - a.qualityIndex);
 
 export default function Dashboard() {
+  const paidPct = Math.round(factPayments / monthFact * 100);
+  const unpaidPct = 100 - paidPct;
+
   return (
     <>
       <PageHeader
@@ -28,16 +31,31 @@ export default function Dashboard() {
         subtitle="Качество продаж = выручка × маржа × оплаты. Май 2026"
       />
 
+      {/* Управленческий вывод — главное за 30 секунд */}
+      <Card className="mb-4 border-l-4 border-l-warning">
+        <div className="flex items-start gap-3">
+          <div className="h-8 w-8 rounded-md bg-warning/10 text-warning flex items-center justify-center shrink-0">
+            <AlertTriangle className="h-4 w-4" />
+          </div>
+          <div>
+            <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Управленческий вывод</div>
+            <p className="text-sm lg:text-[15px] text-foreground/90 leading-relaxed">
+              Выручка выглядит сильной — <span className="font-semibold">{planPct}% плана</span>, но <span className="font-semibold text-warning">качество продаж в зоне контроля</span>: <span className="font-semibold">{unpaidPct}%</span> продаж не оплачено, просроченная дебиторка <span className="num font-semibold text-destructive">{formatShort(overdueReceivable)} ₽</span> ({Math.round(overdueReceivable/totalReceivable*100)}% дебиторки), а прогноз поступлений ниже обязательных платежей на <span className="num font-semibold text-destructive">{formatShort(cashGap)} ₽</span> — есть риск кассового разрыва к концу месяца.
+            </p>
+          </div>
+        </div>
+      </Card>
+
       {/* Storyline — главная связка продукта */}
       <Card className="mb-6 bg-gradient-to-r from-header to-header/95 border-header text-white">
         <div className="text-[11px] uppercase tracking-wider text-white/60 mb-3">Связка качества продаж</div>
-        <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 lg:gap-2 items-stretch">
-          <StoryStep label="Продано" value={formatShort(monthFact) + " ₽"} hint={`${Math.round(monthFact/monthPlan*100)}% плана`} />
-          <StoryStep label="Валовая маржа" value={formatShort(factMargin) + " ₽"} hint="22,4% средняя" />
-          <StoryStep label="Оплачено" value={formatShort(factPayments) + " ₽"} hint={`${Math.round(factPayments/monthFact*100)}% выручки`} />
-          <StoryStep label="Дебиторка" value={formatShort(totalReceivable) + " ₽"} hint={`срок ${avgPaymentDays} дн`} />
-          <StoryStep label="Просрочка" value={formatShort(overdueReceivable) + " ₽"} hint={`${Math.round(overdueReceivable/totalReceivable*100)}% дебиторки`} tone="danger" />
-          <StoryStep label="Риск кассового разрыва" value={formatShort(cashGap) + " ₽"} hint="к концу месяца" tone="danger" />
+        <div className="grid grid-cols-2 lg:grid-cols-6 gap-2 items-stretch">
+          <StoryStep label="Продано" value={formatShort(monthFact) + " ₽"} status="контроль" meaning={`${planPct}% плана — почти выполнено`} />
+          <StoryStep label="Маржа" value="22,4%" status="контроль" meaning="ниже цели 25%" />
+          <StoryStep label="Оплачено" value={formatShort(factPayments) + " ₽"} status="контроль" meaning={`${paidPct}% выручки — недостаточно`} />
+          <StoryStep label="Дебиторка" value={formatShort(totalReceivable) + " ₽"} status="контроль" meaning={`срок ${avgPaymentDays} дн (норма 21)`} />
+          <StoryStep label="Просрочка" value={formatShort(overdueReceivable) + " ₽"} status="критично" meaning={`${Math.round(overdueReceivable/totalReceivable*100)}% дебиторки — зона риска`} />
+          <StoryStep label="Кассовый разрыв" value={"−" + formatShort(cashGap) + " ₽"} status="критично" meaning="к концу месяца" />
         </div>
       </Card>
 
