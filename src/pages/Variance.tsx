@@ -159,3 +159,12 @@ export default function Variance() {
     </>
   );
 }
+
+function Field({ label, value, tone }: { label: string; value: React.ReactNode; tone?: "danger" }) {
+  return (
+    <div>
+      <div className="text-[10px] uppercase text-muted-foreground">{label}</div>
+      <div className={`num font-medium ${tone === "danger" ? "text-destructive" : ""}`}>{value}</div>
+    </div>
+  );
+}
