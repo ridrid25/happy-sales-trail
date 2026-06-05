@@ -84,6 +84,16 @@ export const plannedOutflow = 21_400_000; // плановые расходы и 
 export const cashGap = plannedOutflow - forecastIncoming; // 2,3 млн ₽
 export const avgQualityIndex = 67; // среднее по команде
 
+// Финансовая стоимость просрочки (стоимость зависших денег)
+// Управленческая оценка: сколько компания теряет из-за того, что деньги не поступили вовремя
+export const FINANCING_RATE = 0.24; // 24% годовых — ставка финансирования компании
+export const HOLDING_COST_EXPLAINER =
+  "Стоимость просрочки рассчитывается по ставке финансирования компании (24% годовых). Это управленческая оценка стоимости денег, которые не поступили вовремя.";
+
+/** Стоимость просрочки = сумма × ставка × дней / 365 */
+export const holdingCost = (amount: number, days: number, rate = FINANCING_RATE) =>
+  Math.round(amount * rate * days / 365);
+
 export const managers: Manager[] = [
   {
     id: "m1",
