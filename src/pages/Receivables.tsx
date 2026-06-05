@@ -1,6 +1,6 @@
-import { managers, clients, deals, formatShort, totalReceivable, overdueReceivable, avgPaymentDays, forecastIncoming, riskColor, clientStatusColor, planPayments, factPayments, cashGap, plannedOutflow } from "@/data/demo";
+import { managers, clients, deals, formatShort, totalReceivable, overdueReceivable, avgPaymentDays, forecastIncoming, riskColor, clientStatusColor, planPayments, factPayments, cashGap, plannedOutflow, totalHoldingCost, avgHoldingCostPerClient, topClientsByHoldingCost, managerHoldingCost, clientHoldingCost, dealHoldingCost, FINANCING_RATE, HOLDING_COST_EXPLAINER } from "@/data/demo";
 import { Card, PageHeader, Stat, Badge } from "@/components/ui-bits";
-import { AlertTriangle, CheckSquare, Phone, ShieldOff, FileText, Handshake } from "lucide-react";
+import { AlertTriangle, CheckSquare, Phone, ShieldOff, FileText, Handshake, Info } from "lucide-react";
 
 export default function Receivables() {
   const clientsOverdue = clients.filter(c => c.overdue > 0);
@@ -17,15 +17,21 @@ export default function Receivables() {
     <>
       <PageHeader title="Дебиторская задолженность" subtitle="Качество денег от продаж: оплаты, дебиторка, просрочка, риск кассового разрыва" />
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
         <Stat label="Общая дебиторка" value={formatShort(totalReceivable) + " ₽"} />
         <Stat label="Просроченная" value={formatShort(overdueReceivable) + " ₽"} tone="danger" hint={`${Math.round(overdueReceivable/totalReceivable*100)}% от дебиторки`} />
+        <Stat label="Стоимость просрочки" value={formatShort(totalHoldingCost) + " ₽"} tone="danger" hint={`ставка ${Math.round(FINANCING_RATE*100)}% годовых`} />
+        <Stat label="Сред. стоимость на клиента" value={formatShort(avgHoldingCostPerClient) + " ₽"} tone="warning" hint="среди клиентов с просрочкой" />
         <Stat label="Средний срок оплаты" value={avgPaymentDays + " дн"} tone="warning" hint="норма 21 дн" />
         <Stat label="Прогноз поступлений" value={formatShort(forecastIncoming) + " ₽"} tone="warning" hint={`план ${formatShort(planPayments)} ₽`} />
         <Stat label="Клиентов с просрочкой" value={clientsOverdue.length} />
-        <Stat label="Менеджеры в риске" value={managersCritical.length} tone="danger" hint=">500 тыс просрочка" />
-        <Stat label="Доля просрочки" value={Math.round(overdueReceivable/totalReceivable*100) + "%"} tone="danger" />
         <Stat label="Риск кассового разрыва" value={formatShort(cashGap) + " ₽"} tone="danger" hint={`обязательства ${formatShort(plannedOutflow)} ₽`} />
+      </div>
+
+      {/* Пояснение по стоимости просрочки */}
+      <div className="mb-6 text-[12px] text-muted-foreground bg-muted/40 border border-border rounded-md px-3 py-2 flex items-start gap-2">
+        <Info className="h-3.5 w-3.5 shrink-0 mt-0.5 text-accent" />
+        <span>{HOLDING_COST_EXPLAINER}</span>
       </div>
 
       {/* Прогноз денежного потока */}
@@ -78,6 +84,24 @@ export default function Receivables() {
         </Card>
       )}
 
+      {/* Топ-5 клиентов по стоимости просрочки */}
+      <Card title="Топ-5 клиентов по стоимости просрочки" subtitle="Где сосредоточена стоимость зависших денег" className="mb-4">
+        <div className="space-y-2">
+          {topClientsByHoldingCost(5).map(({ client, cost }) => (
+            <div key={client.id} className="flex items-center justify-between gap-3 border-b border-border last:border-0 pb-2 last:pb-0">
+              <div>
+                <div className="font-medium text-sm">{client.name} <Badge className={clientStatusColor[client.status] + " ml-1"}>{client.status}</Badge></div>
+                <div className="text-[11px] text-muted-foreground">просрочка {formatShort(client.overdue)} ₽ · {client.maxOverdueDays} дн · менеджер {client.manager}</div>
+              </div>
+              <div className="text-right">
+                <div className="num font-semibold text-destructive">{formatShort(cost)} ₽</div>
+                <div className="text-[10px] text-muted-foreground">стоимость просрочки</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
+
 
       <Card title="Дебиторка по менеджерам" className="mb-4">
         <div className="overflow-x-auto -mx-5 px-5">
@@ -85,7 +109,7 @@ export default function Receivables() {
             <thead>
               <tr className="text-left text-[11px] uppercase text-muted-foreground border-b border-border">
                 <Th>Менеджер</Th><Th right>Выручка</Th><Th right>Оплачено</Th>
-                <Th right>Дебиторка</Th><Th right>Просрочка</Th><Th right>Доля просрочки</Th>
+                <Th right>Дебиторка</Th><Th right>Просрочка</Th><Th right>Стоимость просрочки</Th><Th right>Доля просрочки</Th>
                 <Th right>Срок оплаты</Th><Th right>Клиентов с проср.</Th><Th right>Статус</Th>
               </tr>
             </thead>
@@ -93,6 +117,7 @@ export default function Receivables() {
               {managers.map((m) => {
                 const overdueShare = Math.round(m.overdue / Math.max(m.fact, 1) * 100);
                 const clientsCount = clients.filter(c => c.manager === m.name && c.overdue > 0).length;
+                const mHC = managerHoldingCost(m.name);
                 return (
                   <tr key={m.id} className="hover:bg-muted/30">
                     <td className="py-2.5 px-2 font-medium">{m.name}</td>
@@ -100,6 +125,7 @@ export default function Receivables() {
                     <Td className="text-success">{formatShort(m.paid)}</Td>
                     <Td>{formatShort(m.receivable)}</Td>
                     <Td className={m.overdue > 500_000 ? "text-destructive font-semibold" : m.overdue > 0 ? "text-warning" : ""}>{formatShort(m.overdue)}</Td>
+                    <Td className={mHC > 30_000 ? "text-destructive font-semibold" : mHC > 0 ? "text-warning" : ""}>{mHC > 0 ? formatShort(mHC) + " ₽" : "—"}</Td>
                     <Td className={overdueShare > 20 ? "text-destructive" : ""}>{overdueShare}%</Td>
                     <Td>{m.avgPaymentDays} дн</Td>
                     <Td>{clientsCount}</Td>
@@ -118,12 +144,13 @@ export default function Receivables() {
             <thead>
               <tr className="text-left text-[11px] uppercase text-muted-foreground border-b border-border">
                 <Th>Клиент</Th><Th>Менеджер</Th><Th right>Долг</Th><Th right>Просрочка</Th>
-                <Th right>Дней просрочки</Th><Th right>План оплаты</Th><Th right>Статус</Th>
+                <Th right>Дней просрочки</Th><Th right>Стоимость просрочки</Th><Th right>План оплаты</Th><Th right>Статус</Th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {clientsOverdue.map((c) => {
                 const deal = deals.find(d => d.client === c.name && d.overdueDays > 0);
+                const cHC = clientHoldingCost(c.name);
                 return (
                   <tr key={c.id} className="hover:bg-muted/30">
                     <td className="py-2.5 px-2 font-medium">{c.name}</td>
@@ -131,6 +158,7 @@ export default function Receivables() {
                     <Td>{formatShort(c.receivable)}</Td>
                     <Td className="text-destructive font-semibold">{formatShort(c.overdue)}</Td>
                     <Td className="text-destructive">{c.maxOverdueDays} дн</Td>
+                    <Td className="text-destructive font-semibold">{formatShort(cHC)} ₽</Td>
                     <Td>{deal?.planPayDate ?? "—"}</Td>
                     <td className="py-2.5 px-2 text-right"><Badge className={clientStatusColor[c.status]}>{c.status}</Badge></td>
                   </tr>

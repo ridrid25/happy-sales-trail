@@ -1,5 +1,5 @@
 import { Link, useParams } from "react-router-dom";
-import { managers, deals, clients, formatRub, formatShort, riskColor, paymentStatusColor } from "@/data/demo";
+import { managers, deals, clients, formatRub, formatShort, riskColor, paymentStatusColor, managerHoldingCost, FINANCING_RATE } from "@/data/demo";
 import { Card, PageHeader, Stat, Badge, ProgressBar } from "@/components/ui-bits";
 import { AlertTriangle, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from "recharts";
@@ -15,6 +15,7 @@ export default function ManagerProfile() {
   const overduePct = Math.round(m.overdue / m.fact * 100);
 
   const isRisk = m.risk !== "норма";
+  const mHC = managerHoldingCost(m.name);
 
   return (
     <>
@@ -27,12 +28,13 @@ export default function ManagerProfile() {
         actions={<Badge className={riskColor[m.risk]}>{m.risk}</Badge>}
       />
 
-      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-7 gap-3 mb-6">
         <Stat label="Факт / план выручки" value={`${planPct}%`} hint={`${formatShort(m.fact)} / ${formatShort(m.plan)} ₽`} tone={planPct >= 100 ? "success" : "warning"} />
         <Stat label="Оплачено / факт" value={`${paidPct}%`} hint={`${formatShort(m.paid)} ₽`} tone={paidPct >= 80 ? "success" : "warning"} />
         <Stat label="Маржа" value={m.marginPct + "%"} hint={`${formatShort(m.margin)} ₽`} tone={m.marginPct >= 20 ? "success" : "warning"} />
         <Stat label="Дебиторка" value={formatShort(m.receivable) + " ₽"} />
         <Stat label="Просрочка" value={formatShort(m.overdue) + " ₽"} tone="danger" hint={`${overduePct}% выручки`} />
+        <Stat label="Стоимость просрочки" value={(mHC > 0 ? formatShort(mHC) : "0") + " ₽"} tone={mHC > 30_000 ? "danger" : mHC > 0 ? "warning" : "success"} hint={`ставка ${Math.round(FINANCING_RATE*100)}%`} />
         <Stat label="Индекс качества" value={`${m.qualityIndex}/100`} tone={m.qualityIndex >= 75 ? "success" : m.qualityIndex >= 60 ? "warning" : "danger"} />
       </div>
 
@@ -40,7 +42,7 @@ export default function ManagerProfile() {
       <Card className={`mb-6 border-l-4 ${isRisk ? "border-l-destructive" : "border-l-success"}`} title="Управленческий вывод">
         <p className="text-sm text-foreground/90 leading-relaxed">
           {isRisk ? (
-            <>Менеджер {planPct >= 100 ? "выполняет план по выручке" : `отстаёт от плана (${planPct}%)`}, но <span className="font-semibold text-destructive">качество продаж в зоне {m.risk}</span>: {100 - paidPct}% выручки не оплачено, средняя маржа {m.marginPct}% {m.marginPct < 20 ? "ниже целевой 20%" : "в пределах нормы"}, просроченная дебиторка {formatShort(m.overdue)} ₽ ({overduePct}% выручки). Средний срок оплаты {m.avgPaymentDays} дн при норме 21 дн. <span className="font-medium">Рекомендуется ограничить отсрочку по новым сделкам и разобрать условия с {overdueClients.length || 3} крупнейшими клиентами.</span></>
+            <>Менеджер {planPct >= 100 ? "выполняет план по выручке" : `отстаёт от плана (${planPct}%)`}, но <span className="font-semibold text-destructive">качество продаж в зоне {m.risk}</span>: {100 - paidPct}% выручки не оплачено, средняя маржа {m.marginPct}% {m.marginPct < 20 ? "ниже целевой 20%" : "в пределах нормы"}, просроченная дебиторка {formatShort(m.overdue)} ₽ ({overduePct}% выручки), стоимость просрочки по ставке {Math.round(FINANCING_RATE*100)}% составляет <span className="num font-semibold text-destructive">{formatShort(mHC)} ₽</span>. Средний срок оплаты {m.avgPaymentDays} дн при норме 21 дн. <span className="font-medium">Рекомендуется ограничить отсрочку по новым сделкам и разобрать условия с {overdueClients.length || 3} крупнейшими клиентами.</span></>
           ) : (
             <>Менеджер показывает <span className="font-semibold text-success">высокое качество продаж</span>: план по выручке выполнен на {planPct}%, оплачено {paidPct}% факта, маржа {m.marginPct}%, просрочка {overduePct}% выручки. Портфель клиентов устойчивый, риск кассового разрыва минимальный.</>
           )}

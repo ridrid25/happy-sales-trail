@@ -1,6 +1,6 @@
-import { varianceAnalysis, deals } from "@/data/demo";
+import { varianceAnalysis, deals, holdingCostVariance, formatShort, totalHoldingCost, HOLDING_COST_EXPLAINER } from "@/data/demo";
 import { Card, PageHeader, Badge } from "@/components/ui-bits";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Info, Wallet } from "lucide-react";
 
 const causeResponsibility = [
   { cause: "Менеджер дал слабые условия оплаты", responsible: "Менеджер" },
@@ -88,6 +88,42 @@ export default function Variance() {
         </Card>
       </div>
 
+      {/* Почему выросла стоимость просрочки */}
+      <Card
+        className="mt-6"
+        title={<span className="flex items-center gap-2"><Wallet className="h-4 w-4 text-accent" /> Почему выросла стоимость просрочки</span>}
+        subtitle={`Общая стоимость зависших денег ≈ ${formatShort(totalHoldingCost)} ₽`}
+      >
+        <div className="mb-3 text-[12px] text-muted-foreground bg-muted/40 border border-border rounded-md px-3 py-2 flex items-start gap-2">
+          <Info className="h-3.5 w-3.5 shrink-0 mt-0.5 text-accent" />
+          <span>{HOLDING_COST_EXPLAINER}</span>
+        </div>
+        <div className="space-y-3">
+          {holdingCostVariance.map((h, i) => (
+            <div key={i} className="border-l-2 border-l-destructive bg-destructive/5 px-4 py-3 rounded-r-md">
+              <div className="flex items-start justify-between gap-3 mb-2">
+                <div className="font-semibold text-sm">{h.problem}</div>
+                <Badge className="bg-destructive/10 text-destructive border-destructive/30 shrink-0">{formatShort(h.holdingCost)} ₽</Badge>
+              </div>
+              <div className="grid md:grid-cols-5 gap-x-4 gap-y-1 text-[12px]">
+                <Field label="Сумма просрочки" value={`${formatShort(h.overdueAmount)} ₽`} />
+                <Field label="Дней просрочки" value={`${h.overdueDays} дн`} />
+                <Field label="Ставка" value={h.rate} />
+                <Field label="Стоимость" value={`${formatShort(h.holdingCost)} ₽`} tone="danger" />
+                <Field label="Владелец" value={h.owner} />
+              </div>
+              <div className="text-[12px] text-foreground/80 mt-2">
+                <span className="text-muted-foreground">Причина:</span> {h.cause}
+              </div>
+              <div className="text-[12px] text-foreground/90 mt-1 border-t border-border/60 pt-2">
+                <span className="text-muted-foreground">Действие:</span> {h.action}
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+
       <Card className="mt-4" title="Правила статусов риска">
         <div className="grid lg:grid-cols-3 gap-4 text-sm">
           <div>
@@ -121,5 +157,14 @@ export default function Variance() {
         </div>
       </Card>
     </>
+  );
+}
+
+function Field({ label, value, tone }: { label: string; value: React.ReactNode; tone?: "danger" }) {
+  return (
+    <div>
+      <div className="text-[10px] uppercase text-muted-foreground">{label}</div>
+      <div className={`num font-medium ${tone === "danger" ? "text-destructive" : ""}`}>{value}</div>
+    </div>
   );
 }

@@ -2,7 +2,8 @@ import { Link } from "react-router-dom";
 import {
   managers, redFlags, monthPlan, monthFact, monthForecast, planMargin, factMargin,
   planPayments, factPayments, totalReceivable, overdueReceivable, avgPaymentDays,
-  forecastIncoming, deals, formatRub, formatShort, riskColor, cashGap, avgQualityIndex
+  forecastIncoming, deals, formatRub, formatShort, riskColor, cashGap, avgQualityIndex,
+  totalHoldingCost, avgOverdueDays, FINANCING_RATE
 } from "@/data/demo";
 import { Card, PageHeader, Stat, Badge, ProgressBar } from "@/components/ui-bits";
 import { AlertTriangle, TrendingUp, Wallet, Target, Activity, ShieldAlert, ArrowRight, ArrowRightCircle } from "lucide-react";
@@ -54,7 +55,7 @@ export default function Dashboard() {
           <StoryStep label="Маржа" value="22,4%" status="контроль" meaning="ниже цели 25%" />
           <StoryStep label="Оплачено" value={formatShort(factPayments) + " ₽"} status="контроль" meaning={`${paidPct}% выручки — недостаточно`} />
           <StoryStep label="Дебиторка" value={formatShort(totalReceivable) + " ₽"} status="контроль" meaning={`срок ${avgPaymentDays} дн (норма 21)`} />
-          <StoryStep label="Просрочка" value={formatShort(overdueReceivable) + " ₽"} status="критично" meaning={`${Math.round(overdueReceivable/totalReceivable*100)}% дебиторки — зона риска`} />
+          <StoryStep label="Просрочка" value={formatShort(overdueReceivable) + " ₽"} status="критично" meaning={`${avgOverdueDays} дн · стоимость ≈ ${formatShort(totalHoldingCost)} ₽`} />
           <StoryStep label="Кассовый разрыв" value={"−" + formatShort(cashGap) + " ₽"} status="критично" meaning="к концу месяца" />
         </div>
       </Card>
@@ -88,11 +89,12 @@ export default function Dashboard() {
         {/* 3. Деньги */}
         <section>
           <SectionTitle icon={<Wallet className="h-4 w-4" />} title="Деньги" />
-          <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 mt-3">
+          <div className="grid grid-cols-2 lg:grid-cols-7 gap-3 mt-3">
             <Stat label="Оплаченная выручка" value={formatShort(factPayments) + " ₽"} tone="success" />
             <Stat label="Неоплаченная" value={formatShort(monthFact - factPayments) + " ₽"} tone="warning" />
             <Stat label="Дебиторка" value={formatShort(totalReceivable) + " ₽"} />
             <Stat label="Просроченная" value={formatShort(overdueReceivable) + " ₽"} tone="danger" hint={`${Math.round(overdueReceivable/totalReceivable*100)}% от дебиторки`} />
+            <Stat label="Стоимость просрочки" value={formatShort(totalHoldingCost) + " ₽"} tone="danger" hint={`по ставке ${Math.round(FINANCING_RATE*100)}% годовых`} />
             <Stat label="Срок оплаты" value={avgPaymentDays + " дн"} hint="средний" tone="warning" />
             <Stat label="Прогноз поступлений" value={formatShort(forecastIncoming) + " ₽"} hint={`план ${formatShort(planPayments)} ₽`} tone="warning" />
           </div>

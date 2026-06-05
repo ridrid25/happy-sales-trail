@@ -84,6 +84,16 @@ export const plannedOutflow = 21_400_000; // плановые расходы и 
 export const cashGap = plannedOutflow - forecastIncoming; // 2,3 млн ₽
 export const avgQualityIndex = 67; // среднее по команде
 
+// Финансовая стоимость просрочки (стоимость зависших денег)
+// Управленческая оценка: сколько компания теряет из-за того, что деньги не поступили вовремя
+export const FINANCING_RATE = 0.24; // 24% годовых — ставка финансирования компании
+export const HOLDING_COST_EXPLAINER =
+  "Стоимость просрочки рассчитывается по ставке финансирования компании (24% годовых). Это управленческая оценка стоимости денег, которые не поступили вовремя.";
+
+/** Стоимость просрочки = сумма × ставка × дней / 365 */
+export const holdingCost = (amount: number, days: number, rate = FINANCING_RATE) =>
+  Math.round(amount * rate * days / 365);
+
 export const managers: Manager[] = [
   {
     id: "m1",
@@ -309,6 +319,20 @@ export const redFlags: RedFlag[] = [
     who: "Алексей Петров (3), Сергей Минин (2), Екатерина Лаврова (1)",
     action: "Назначить следующий шаг по каждой сделке до конца дня",
   },
+  {
+    title: "Стоимость зависших денег по менеджеру превышает норму",
+    severity: "high", area: "Стоимость просрочки",
+    amount: "Просрочка 1,24 млн ₽ · стоимость зависших денег ≈ 66 тыс ₽",
+    who: "Иван Иванов",
+    action: "Ограничить отсрочку, разобрать 3 крупнейших долга. Считать стоимость по ставке 24% годовых",
+  },
+  {
+    title: "5 клиентов формируют ~80% стоимости зависших денег",
+    severity: "medium", area: "Стоимость просрочки",
+    amount: "≈ 76 тыс ₽ из 95 тыс ₽ общей стоимости просрочки",
+    who: "«Альфа Логистика», «ТрейдГранд», «Лига Ритейл», «Полюс Тех», «СтудияМаркет»",
+    action: "Сфокусировать сбор дебиторки на этих 5 клиентах — максимальный эффект на cash flow",
+  },
 ];
 
 export const funnelStages: { stage: Stage; count: number; amount: number; conversion: number; avgDays: number; overdueActions: number; expectedMargin: number; expectedPayments: number }[] = [
@@ -338,6 +362,51 @@ export const varianceAnalysis = [
   { area: "Какие клиенты создают риск", metric: "Доля просрочки в выручке клиента", deviation: ">30% у 3 клиентов", cause: "«Альфа Логистика» (38% просрочки), «ТрейдГранд» (34%), «Лига Ритейл» (52%) — системные задержки оплат", action: "Перевести в статус «стоп», блокировать новые отгрузки до погашения. Согласовать график оплат", owner: "Финдиректор" },
   { area: "Какие менеджеры требуют внимания", metric: "Индекс качества продаж", deviation: "48 / 100 — Иван Иванов", cause: "118% плана по выручке, но маржа 15,8% и просрочка 1,24 млн ₽ — продаёт ниже минимальной маржи проблемным клиентам", action: "Ввести KPI по оплаченной выручке и марже. Разбор 3 крупнейших сделок Ивана на этой неделе", owner: "РОП" },
 ];
+
+// Аналитика отклонений: почему выросла стоимость просрочки (расширенный формат)
+export const holdingCostVariance = [
+  {
+    problem: "«Альфа Логистика» — крупная просрочка по двум сделкам",
+    overdueAmount: 980_000,
+    overdueDays: 48,
+    rate: "24% годовых",
+    holdingCost: holdingCost(980_000, 48),
+    cause: "Системные задержки оплат клиентом, отгрузка без согласования с финдиректором",
+    owner: "РОП + Финдиректор",
+    action: "Перевести в статус «стоп», заблокировать новые отгрузки, согласовать график погашения",
+  },
+  {
+    problem: "«ТрейдГранд» — отсрочка не соблюдается, рост просрочки",
+    overdueAmount: 620_000,
+    overdueDays: 32,
+    rate: "24% годовых",
+    holdingCost: holdingCost(620_000, 32),
+    cause: "Менеджер согласовал слабые условия (отсрочка 14 дн, скидка 6%)",
+    owner: "Менеджер + РОП",
+    action: "Перевести на предоплату 50%, запретить отгрузки до погашения 50% долга",
+  },
+  {
+    problem: "«Лига Ритейл» — просрочка по двум сделкам, статус «риск»",
+    overdueAmount: 580_000,
+    overdueDays: 38,
+    rate: "24% годовых",
+    holdingCost: holdingCost(580_000, 38),
+    cause: "Клиент изначально рискованный, продолжаются отгрузки с отсрочкой",
+    owner: "РОП",
+    action: "Остановить отгрузки, передать долг финдиректору на работу",
+  },
+  {
+    problem: "«СтудияМаркет» — длительная просрочка по выигранной сделке",
+    overdueAmount: 320_000,
+    overdueDays: 28,
+    rate: "24% годовых",
+    holdingCost: holdingCost(320_000, 28),
+    cause: "Клиент изначально рискованный, нет регулярного контакта по оплатам",
+    owner: "Менеджер",
+    action: "Связаться с клиентом, зафиксировать график оплат письменно",
+  },
+];
+
 
 export const actions = [
   { title: "Согласовать новую отгрузку клиенту «Альфа Логистика»", owner: "Иван Иванов", due: "сегодня", priority: "Высокий", overdue: false },
@@ -380,3 +449,43 @@ export const paymentStatusColor: Record<PaymentStatus, string> = {
   "просрочено": "bg-destructive/10 text-destructive border-destructive/20",
   "проблемная": "bg-destructive text-destructive-foreground border-destructive",
 };
+
+// ===== Стоимость просрочки: производные данные =====
+
+/** Стоимость просрочки по конкретной сделке (на основе неоплаченной суммы и дней просрочки) */
+export const dealHoldingCost = (d: Deal) =>
+  d.overdueDays > 0 ? holdingCost(d.unpaid, d.overdueDays) : 0;
+
+/** Стоимость просрочки по менеджеру — сумма по его просроченным сделкам */
+export const managerHoldingCost = (managerName: string) =>
+  deals.filter(d => d.manager === managerName).reduce((s, d) => s + dealHoldingCost(d), 0);
+
+/** Стоимость просрочки по клиенту — сумма по его просроченным сделкам */
+export const clientHoldingCost = (clientName: string) =>
+  deals.filter(d => d.client === clientName).reduce((s, d) => s + dealHoldingCost(d), 0);
+
+/** Общая стоимость просрочки по компании */
+export const totalHoldingCost = deals.reduce((s, d) => s + dealHoldingCost(d), 0);
+
+/** Средняя стоимость просрочки на одного клиента с просрочкой */
+export const avgHoldingCostPerClient = (() => {
+  const list = clients.filter(c => c.overdue > 0).map(c => clientHoldingCost(c.name));
+  return list.length ? Math.round(list.reduce((a, b) => a + b, 0) / list.length) : 0;
+})();
+
+/** Топ-N клиентов по стоимости просрочки */
+export const topClientsByHoldingCost = (n = 5) =>
+  clients
+    .map(c => ({ client: c, cost: clientHoldingCost(c.name) }))
+    .filter(x => x.cost > 0)
+    .sort((a, b) => b.cost - a.cost)
+    .slice(0, n);
+
+/** Средние дни просрочки (взвешенные по сумме) */
+export const avgOverdueDays = (() => {
+  const od = deals.filter(d => d.overdueDays > 0);
+  const sumAmt = od.reduce((s, d) => s + d.unpaid, 0);
+  if (!sumAmt) return 0;
+  return Math.round(od.reduce((s, d) => s + d.unpaid * d.overdueDays, 0) / sumAmt);
+})();
+
