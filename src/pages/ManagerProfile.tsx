@@ -28,12 +28,13 @@ export default function ManagerProfile() {
         actions={<Badge className={riskColor[m.risk]}>{m.risk}</Badge>}
       />
 
-      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-7 gap-3 mb-6">
         <Stat label="Факт / план выручки" value={`${planPct}%`} hint={`${formatShort(m.fact)} / ${formatShort(m.plan)} ₽`} tone={planPct >= 100 ? "success" : "warning"} />
         <Stat label="Оплачено / факт" value={`${paidPct}%`} hint={`${formatShort(m.paid)} ₽`} tone={paidPct >= 80 ? "success" : "warning"} />
         <Stat label="Маржа" value={m.marginPct + "%"} hint={`${formatShort(m.margin)} ₽`} tone={m.marginPct >= 20 ? "success" : "warning"} />
         <Stat label="Дебиторка" value={formatShort(m.receivable) + " ₽"} />
         <Stat label="Просрочка" value={formatShort(m.overdue) + " ₽"} tone="danger" hint={`${overduePct}% выручки`} />
+        <Stat label="Стоимость просрочки" value={(mHC > 0 ? formatShort(mHC) : "0") + " ₽"} tone={mHC > 30_000 ? "danger" : mHC > 0 ? "warning" : "success"} hint={`ставка ${Math.round(FINANCING_RATE*100)}%`} />
         <Stat label="Индекс качества" value={`${m.qualityIndex}/100`} tone={m.qualityIndex >= 75 ? "success" : m.qualityIndex >= 60 ? "warning" : "danger"} />
       </div>
 
