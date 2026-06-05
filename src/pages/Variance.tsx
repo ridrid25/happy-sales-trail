@@ -1,6 +1,6 @@
-import { varianceAnalysis, deals } from "@/data/demo";
+import { varianceAnalysis, deals, holdingCostVariance, formatShort, totalHoldingCost, HOLDING_COST_EXPLAINER } from "@/data/demo";
 import { Card, PageHeader, Badge } from "@/components/ui-bits";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Info, Wallet } from "lucide-react";
 
 const causeResponsibility = [
   { cause: "Менеджер дал слабые условия оплаты", responsible: "Менеджер" },
