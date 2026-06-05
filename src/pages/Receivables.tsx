@@ -109,7 +109,7 @@ export default function Receivables() {
             <thead>
               <tr className="text-left text-[11px] uppercase text-muted-foreground border-b border-border">
                 <Th>Менеджер</Th><Th right>Выручка</Th><Th right>Оплачено</Th>
-                <Th right>Дебиторка</Th><Th right>Просрочка</Th><Th right>Доля просрочки</Th>
+                <Th right>Дебиторка</Th><Th right>Просрочка</Th><Th right>Стоимость просрочки</Th><Th right>Доля просрочки</Th>
                 <Th right>Срок оплаты</Th><Th right>Клиентов с проср.</Th><Th right>Статус</Th>
               </tr>
             </thead>
@@ -117,6 +117,7 @@ export default function Receivables() {
               {managers.map((m) => {
                 const overdueShare = Math.round(m.overdue / Math.max(m.fact, 1) * 100);
                 const clientsCount = clients.filter(c => c.manager === m.name && c.overdue > 0).length;
+                const mHC = managerHoldingCost(m.name);
                 return (
                   <tr key={m.id} className="hover:bg-muted/30">
                     <td className="py-2.5 px-2 font-medium">{m.name}</td>
@@ -124,6 +125,7 @@ export default function Receivables() {
                     <Td className="text-success">{formatShort(m.paid)}</Td>
                     <Td>{formatShort(m.receivable)}</Td>
                     <Td className={m.overdue > 500_000 ? "text-destructive font-semibold" : m.overdue > 0 ? "text-warning" : ""}>{formatShort(m.overdue)}</Td>
+                    <Td className={mHC > 30_000 ? "text-destructive font-semibold" : mHC > 0 ? "text-warning" : ""}>{mHC > 0 ? formatShort(mHC) + " ₽" : "—"}</Td>
                     <Td className={overdueShare > 20 ? "text-destructive" : ""}>{overdueShare}%</Td>
                     <Td>{m.avgPaymentDays} дн</Td>
                     <Td>{clientsCount}</Td>
