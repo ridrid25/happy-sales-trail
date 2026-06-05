@@ -55,7 +55,7 @@ export default function Dashboard() {
           <StoryStep label="Маржа" value="22,4%" status="контроль" meaning="ниже цели 25%" />
           <StoryStep label="Оплачено" value={formatShort(factPayments) + " ₽"} status="контроль" meaning={`${paidPct}% выручки — недостаточно`} />
           <StoryStep label="Дебиторка" value={formatShort(totalReceivable) + " ₽"} status="контроль" meaning={`срок ${avgPaymentDays} дн (норма 21)`} />
-          <StoryStep label="Просрочка" value={formatShort(overdueReceivable) + " ₽"} status="критично" meaning={`${Math.round(overdueReceivable/totalReceivable*100)}% дебиторки — зона риска`} />
+          <StoryStep label="Просрочка" value={formatShort(overdueReceivable) + " ₽"} status="критично" meaning={`${avgOverdueDays} дн · стоимость ≈ ${formatShort(totalHoldingCost)} ₽`} />
           <StoryStep label="Кассовый разрыв" value={"−" + formatShort(cashGap) + " ₽"} status="критично" meaning="к концу месяца" />
         </div>
       </Card>
