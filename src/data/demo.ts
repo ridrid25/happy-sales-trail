@@ -390,3 +390,43 @@ export const paymentStatusColor: Record<PaymentStatus, string> = {
   "просрочено": "bg-destructive/10 text-destructive border-destructive/20",
   "проблемная": "bg-destructive text-destructive-foreground border-destructive",
 };
+
+// ===== Стоимость просрочки: производные данные =====
+
+/** Стоимость просрочки по конкретной сделке (на основе неоплаченной суммы и дней просрочки) */
+export const dealHoldingCost = (d: Deal) =>
+  d.overdueDays > 0 ? holdingCost(d.unpaid, d.overdueDays) : 0;
+
+/** Стоимость просрочки по менеджеру — сумма по его просроченным сделкам */
+export const managerHoldingCost = (managerName: string) =>
+  deals.filter(d => d.manager === managerName).reduce((s, d) => s + dealHoldingCost(d), 0);
+
+/** Стоимость просрочки по клиенту — сумма по его просроченным сделкам */
+export const clientHoldingCost = (clientName: string) =>
+  deals.filter(d => d.client === clientName).reduce((s, d) => s + dealHoldingCost(d), 0);
+
+/** Общая стоимость просрочки по компании */
+export const totalHoldingCost = deals.reduce((s, d) => s + dealHoldingCost(d), 0);
+
+/** Средняя стоимость просрочки на одного клиента с просрочкой */
+export const avgHoldingCostPerClient = (() => {
+  const list = clients.filter(c => c.overdue > 0).map(c => clientHoldingCost(c.name));
+  return list.length ? Math.round(list.reduce((a, b) => a + b, 0) / list.length) : 0;
+})();
+
+/** Топ-N клиентов по стоимости просрочки */
+export const topClientsByHoldingCost = (n = 5) =>
+  clients
+    .map(c => ({ client: c, cost: clientHoldingCost(c.name) }))
+    .filter(x => x.cost > 0)
+    .sort((a, b) => b.cost - a.cost)
+    .slice(0, n);
+
+/** Средние дни просрочки (взвешенные по сумме) */
+export const avgOverdueDays = (() => {
+  const od = deals.filter(d => d.overdueDays > 0);
+  const sumAmt = od.reduce((s, d) => s + d.unpaid, 0);
+  if (!sumAmt) return 0;
+  return Math.round(od.reduce((s, d) => s + d.unpaid * d.overdueDays, 0) / sumAmt);
+})();
+
