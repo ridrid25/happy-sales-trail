@@ -89,11 +89,12 @@ export default function Dashboard() {
         {/* 3. Деньги */}
         <section>
           <SectionTitle icon={<Wallet className="h-4 w-4" />} title="Деньги" />
-          <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 mt-3">
+          <div className="grid grid-cols-2 lg:grid-cols-7 gap-3 mt-3">
             <Stat label="Оплаченная выручка" value={formatShort(factPayments) + " ₽"} tone="success" />
             <Stat label="Неоплаченная" value={formatShort(monthFact - factPayments) + " ₽"} tone="warning" />
             <Stat label="Дебиторка" value={formatShort(totalReceivable) + " ₽"} />
             <Stat label="Просроченная" value={formatShort(overdueReceivable) + " ₽"} tone="danger" hint={`${Math.round(overdueReceivable/totalReceivable*100)}% от дебиторки`} />
+            <Stat label="Стоимость просрочки" value={formatShort(totalHoldingCost) + " ₽"} tone="danger" hint={`по ставке ${Math.round(FINANCING_RATE*100)}% годовых`} />
             <Stat label="Срок оплаты" value={avgPaymentDays + " дн"} hint="средний" tone="warning" />
             <Stat label="Прогноз поступлений" value={formatShort(forecastIncoming) + " ₽"} hint={`план ${formatShort(planPayments)} ₽`} tone="warning" />
           </div>
