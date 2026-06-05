@@ -2,7 +2,8 @@ import { Link } from "react-router-dom";
 import {
   managers, redFlags, monthPlan, monthFact, monthForecast, planMargin, factMargin,
   planPayments, factPayments, totalReceivable, overdueReceivable, avgPaymentDays,
-  forecastIncoming, deals, formatRub, formatShort, riskColor, cashGap, avgQualityIndex
+  forecastIncoming, deals, formatRub, formatShort, riskColor, cashGap, avgQualityIndex,
+  totalHoldingCost, avgOverdueDays, FINANCING_RATE
 } from "@/data/demo";
 import { Card, PageHeader, Stat, Badge, ProgressBar } from "@/components/ui-bits";
 import { AlertTriangle, TrendingUp, Wallet, Target, Activity, ShieldAlert, ArrowRight, ArrowRightCircle } from "lucide-react";
