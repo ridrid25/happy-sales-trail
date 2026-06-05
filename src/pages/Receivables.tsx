@@ -144,12 +144,13 @@ export default function Receivables() {
             <thead>
               <tr className="text-left text-[11px] uppercase text-muted-foreground border-b border-border">
                 <Th>Клиент</Th><Th>Менеджер</Th><Th right>Долг</Th><Th right>Просрочка</Th>
-                <Th right>Дней просрочки</Th><Th right>План оплаты</Th><Th right>Статус</Th>
+                <Th right>Дней просрочки</Th><Th right>Стоимость просрочки</Th><Th right>План оплаты</Th><Th right>Статус</Th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {clientsOverdue.map((c) => {
                 const deal = deals.find(d => d.client === c.name && d.overdueDays > 0);
+                const cHC = clientHoldingCost(c.name);
                 return (
                   <tr key={c.id} className="hover:bg-muted/30">
                     <td className="py-2.5 px-2 font-medium">{c.name}</td>
@@ -157,6 +158,7 @@ export default function Receivables() {
                     <Td>{formatShort(c.receivable)}</Td>
                     <Td className="text-destructive font-semibold">{formatShort(c.overdue)}</Td>
                     <Td className="text-destructive">{c.maxOverdueDays} дн</Td>
+                    <Td className="text-destructive font-semibold">{formatShort(cHC)} ₽</Td>
                     <Td>{deal?.planPayDate ?? "—"}</Td>
                     <td className="py-2.5 px-2 text-right"><Badge className={clientStatusColor[c.status]}>{c.status}</Badge></td>
                   </tr>
