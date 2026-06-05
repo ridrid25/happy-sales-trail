@@ -84,6 +84,24 @@ export default function Receivables() {
         </Card>
       )}
 
+      {/* Топ-5 клиентов по стоимости просрочки */}
+      <Card title="Топ-5 клиентов по стоимости просрочки" subtitle="Где сосредоточена стоимость зависших денег" className="mb-4">
+        <div className="space-y-2">
+          {topClientsByHoldingCost(5).map(({ client, cost }) => (
+            <div key={client.id} className="flex items-center justify-between gap-3 border-b border-border last:border-0 pb-2 last:pb-0">
+              <div>
+                <div className="font-medium text-sm">{client.name} <Badge className={clientStatusColor[client.status] + " ml-1"}>{client.status}</Badge></div>
+                <div className="text-[11px] text-muted-foreground">просрочка {formatShort(client.overdue)} ₽ · {client.maxOverdueDays} дн · менеджер {client.manager}</div>
+              </div>
+              <div className="text-right">
+                <div className="num font-semibold text-destructive">{formatShort(cost)} ₽</div>
+                <div className="text-[10px] text-muted-foreground">стоимость просрочки</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
+
 
       <Card title="Дебиторка по менеджерам" className="mb-4">
         <div className="overflow-x-auto -mx-5 px-5">
