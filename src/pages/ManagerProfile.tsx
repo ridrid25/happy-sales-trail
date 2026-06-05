@@ -15,6 +15,7 @@ export default function ManagerProfile() {
   const overduePct = Math.round(m.overdue / m.fact * 100);
 
   const isRisk = m.risk !== "норма";
+  const mHC = managerHoldingCost(m.name);
 
   return (
     <>
