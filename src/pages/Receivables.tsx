@@ -17,15 +17,21 @@ export default function Receivables() {
     <>
       <PageHeader title="Дебиторская задолженность" subtitle="Качество денег от продаж: оплаты, дебиторка, просрочка, риск кассового разрыва" />
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
         <Stat label="Общая дебиторка" value={formatShort(totalReceivable) + " ₽"} />
         <Stat label="Просроченная" value={formatShort(overdueReceivable) + " ₽"} tone="danger" hint={`${Math.round(overdueReceivable/totalReceivable*100)}% от дебиторки`} />
+        <Stat label="Стоимость просрочки" value={formatShort(totalHoldingCost) + " ₽"} tone="danger" hint={`ставка ${Math.round(FINANCING_RATE*100)}% годовых`} />
+        <Stat label="Сред. стоимость на клиента" value={formatShort(avgHoldingCostPerClient) + " ₽"} tone="warning" hint="среди клиентов с просрочкой" />
         <Stat label="Средний срок оплаты" value={avgPaymentDays + " дн"} tone="warning" hint="норма 21 дн" />
         <Stat label="Прогноз поступлений" value={formatShort(forecastIncoming) + " ₽"} tone="warning" hint={`план ${formatShort(planPayments)} ₽`} />
         <Stat label="Клиентов с просрочкой" value={clientsOverdue.length} />
-        <Stat label="Менеджеры в риске" value={managersCritical.length} tone="danger" hint=">500 тыс просрочка" />
-        <Stat label="Доля просрочки" value={Math.round(overdueReceivable/totalReceivable*100) + "%"} tone="danger" />
         <Stat label="Риск кассового разрыва" value={formatShort(cashGap) + " ₽"} tone="danger" hint={`обязательства ${formatShort(plannedOutflow)} ₽`} />
+      </div>
+
+      {/* Пояснение по стоимости просрочки */}
+      <div className="mb-6 text-[12px] text-muted-foreground bg-muted/40 border border-border rounded-md px-3 py-2 flex items-start gap-2">
+        <Info className="h-3.5 w-3.5 shrink-0 mt-0.5 text-accent" />
+        <span>{HOLDING_COST_EXPLAINER}</span>
       </div>
 
       {/* Прогноз денежного потока */}
