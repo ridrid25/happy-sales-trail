@@ -33,14 +33,14 @@ export default function Dashboard() {
       />
 
       {/* Управленческий вывод — главное за 30 секунд */}
-      <Card className="mb-4 border-l-4 border-l-warning">
+      <Card className="mb-4 border-l-4 border-l-warning bg-warning/[0.03] dark:bg-warning/[0.06] dark:border-warning/30 dark:shadow-elevated">
         <div className="flex items-start gap-3">
-          <div className="h-8 w-8 rounded-md bg-warning/10 text-warning flex items-center justify-center shrink-0">
-            <AlertTriangle className="h-4 w-4" />
+          <div className="h-9 w-9 rounded-md bg-warning/15 text-warning flex items-center justify-center shrink-0 ring-1 ring-warning/30">
+            <AlertTriangle className="h-4.5 w-4.5" />
           </div>
           <div>
-            <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Управленческий вывод</div>
-            <p className="text-sm lg:text-[15px] text-foreground/90 leading-relaxed">
+            <div className="text-[11px] uppercase tracking-wider text-warning/90 dark:text-warning font-semibold mb-1">Управленческий вывод</div>
+            <p className="text-sm lg:text-[15px] text-foreground leading-relaxed">
               Выручка выглядит сильной — <span className="font-semibold">{planPct}% плана</span>, но <span className="font-semibold text-warning">качество продаж в зоне контроля</span>: <span className="font-semibold">{unpaidPct}%</span> продаж не оплачено, просроченная дебиторка <span className="num font-semibold text-destructive">{formatShort(overdueReceivable)} ₽</span> ({Math.round(overdueReceivable/totalReceivable*100)}% дебиторки), а прогноз поступлений ниже обязательных платежей на <span className="num font-semibold text-destructive">{formatShort(cashGap)} ₽</span> — есть риск кассового разрыва к концу месяца.
             </p>
           </div>
