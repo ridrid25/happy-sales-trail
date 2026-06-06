@@ -146,3 +146,25 @@
   .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
   .scrollbar-thin::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 3px; }
 }
+
+/* ===== Dark theme polish ===== */
+.dark .bg-card {
+  /* небольшой внутренний highlight сверху, чтобы карточка отделялась от фона */
+  background-image: linear-gradient(180deg, hsl(0 0% 100% / 0.018), hsl(0 0% 100% / 0));
+}
+
+/* KPI/секционные карточки сильнее в тёмной теме */
+.dark .shadow-card {
+  box-shadow:
+    0 0 0 1px hsl(0 0% 100% / 0.025) inset,
+    0 1px 0 0 hsl(0 0% 100% / 0.04) inset,
+    0 6px 14px -6px hsl(0 0% 0% / 0.6);
+}
+
+/* Recharts сетка в тёмной теме чуть менее контрастная, тултип фон */
+.dark .recharts-cartesian-grid line { stroke: hsl(var(--border)); opacity: 0.7; }
+.dark .recharts-default-tooltip {
+  background: hsl(var(--popover)) !important;
+  border-color: hsl(var(--border)) !important;
+  color: hsl(var(--popover-foreground)) !important;
+}
