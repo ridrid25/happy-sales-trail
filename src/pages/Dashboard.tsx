@@ -231,19 +231,25 @@ function SectionTitle({ icon, title }: { icon: React.ReactNode; title: string })
 
 function StoryStep({ label, value, meaning, status = "норма" }: { label: string; value: string; meaning?: string; status?: "норма" | "контроль" | "критично" }) {
   const dot = { "норма": "bg-success", "контроль": "bg-warning", "критично": "bg-destructive" }[status];
-  const valueCls = status === "критично" ? "text-white" : status === "контроль" ? "text-white" : "text-white";
-  const ring = status === "критично" ? "ring-1 ring-destructive/40 bg-destructive/10" : "bg-white/[0.04]";
+  const statusText = { "норма": "text-success", "контроль": "text-warning", "критично": "text-destructive" }[status];
+  const wrap =
+    status === "критично"
+      ? "bg-destructive/15 border-destructive/40 ring-1 ring-destructive/30"
+      : status === "контроль"
+      ? "bg-warning/10 border-warning/30"
+      : "bg-white/[0.06] border-white/15";
+  const valueCls = status === "критично" ? "text-white" : "text-white";
   return (
-    <div className={`relative px-3 py-2.5 rounded-md border border-white/10 ${ring}`}>
-      <div className="flex items-center justify-between gap-2 mb-1">
-        <div className="text-[10px] uppercase tracking-wider text-white/55">{label}</div>
+    <div className={`relative px-3 py-2.5 rounded-md border ${wrap} shadow-[0_1px_0_0_hsl(0_0%_100%/0.04)_inset]`}>
+      <div className="flex items-center justify-between gap-2 mb-1.5">
+        <div className="text-[10px] uppercase tracking-wider text-white/70 font-medium">{label}</div>
         <div className="flex items-center gap-1">
           <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
-          <span className="text-[9px] uppercase tracking-wide text-white/65">{status}</span>
+          <span className={`text-[9px] uppercase tracking-wide font-semibold ${statusText}`}>{status}</span>
         </div>
       </div>
-      <div className={`font-display font-semibold text-base lg:text-lg num leading-tight ${valueCls}`}>{value}</div>
-      {meaning && <div className="text-[10px] text-white/55 mt-0.5 leading-snug">{meaning}</div>}
+      <div className={`font-display font-bold text-lg lg:text-xl num leading-tight ${valueCls}`}>{value}</div>
+      {meaning && <div className="text-[10.5px] text-white/70 mt-1 leading-snug">{meaning}</div>}
     </div>
   );
 }
