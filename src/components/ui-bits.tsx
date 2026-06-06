@@ -27,13 +27,21 @@ export function Stat({
     danger: "text-destructive",
     accent: "text-accent",
   }[tone];
+  const accentBar = {
+    default: "bg-border",
+    success: "bg-success",
+    warning: "bg-warning",
+    danger: "bg-destructive",
+    accent: "bg-accent",
+  }[tone];
   return (
-    <div className="bg-card rounded-lg border border-border p-4 lg:p-5 shadow-card">
+    <div className="relative bg-card rounded-lg border border-border p-4 lg:p-5 shadow-card overflow-hidden">
+      <span className={cn("absolute left-0 top-0 bottom-0 w-0.5", accentBar, tone === "default" && "opacity-40")} aria-hidden />
       <div className="flex items-start justify-between gap-2">
         <div className="text-xs lg:text-[13px] text-muted-foreground font-medium">{label}</div>
         {icon}
       </div>
-      <div className={cn("font-display font-semibold text-xl lg:text-2xl mt-2 num", toneCls)}>{value}</div>
+      <div className={cn("font-display font-semibold text-xl lg:text-2xl mt-2 num text-foreground", toneCls)}>{value}</div>
       {hint && <div className="text-xs text-muted-foreground mt-1">{hint}</div>}
     </div>
   );

@@ -15,8 +15,8 @@ const lowMarginCount = deals.filter(d => d.marginPct < 15 && d.stage === "Выи
 const planPct = Math.round(monthFact / monthPlan * 100);
 
 const severityCls = {
-  high: "border-l-destructive bg-destructive/5",
-  medium: "border-l-warning bg-warning/5",
+  high: "border-l-destructive bg-destructive/5 dark:bg-destructive/10 dark:border-destructive/30",
+  medium: "border-l-warning bg-warning/5 dark:bg-warning/10 dark:border-warning/30",
 };
 
 const sortedByQuality = [...managers].sort((a, b) => b.qualityIndex - a.qualityIndex);
@@ -33,14 +33,14 @@ export default function Dashboard() {
       />
 
       {/* Управленческий вывод — главное за 30 секунд */}
-      <Card className="mb-4 border-l-4 border-l-warning">
+      <Card className="mb-4 border-l-4 border-l-warning bg-warning/[0.03] dark:bg-warning/[0.06] dark:border-warning/30 dark:shadow-elevated">
         <div className="flex items-start gap-3">
-          <div className="h-8 w-8 rounded-md bg-warning/10 text-warning flex items-center justify-center shrink-0">
-            <AlertTriangle className="h-4 w-4" />
+          <div className="h-9 w-9 rounded-md bg-warning/15 text-warning flex items-center justify-center shrink-0 ring-1 ring-warning/30">
+            <AlertTriangle className="h-4.5 w-4.5" />
           </div>
           <div>
-            <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Управленческий вывод</div>
-            <p className="text-sm lg:text-[15px] text-foreground/90 leading-relaxed">
+            <div className="text-[11px] uppercase tracking-wider text-warning/90 dark:text-warning font-semibold mb-1">Управленческий вывод</div>
+            <p className="text-sm lg:text-[15px] text-foreground leading-relaxed">
               Выручка выглядит сильной — <span className="font-semibold">{planPct}% плана</span>, но <span className="font-semibold text-warning">качество продаж в зоне контроля</span>: <span className="font-semibold">{unpaidPct}%</span> продаж не оплачено, просроченная дебиторка <span className="num font-semibold text-destructive">{formatShort(overdueReceivable)} ₽</span> ({Math.round(overdueReceivable/totalReceivable*100)}% дебиторки), а прогноз поступлений ниже обязательных платежей на <span className="num font-semibold text-destructive">{formatShort(cashGap)} ₽</span> — есть риск кассового разрыва к концу месяца.
             </p>
           </div>
@@ -231,19 +231,25 @@ function SectionTitle({ icon, title }: { icon: React.ReactNode; title: string })
 
 function StoryStep({ label, value, meaning, status = "норма" }: { label: string; value: string; meaning?: string; status?: "норма" | "контроль" | "критично" }) {
   const dot = { "норма": "bg-success", "контроль": "bg-warning", "критично": "bg-destructive" }[status];
-  const valueCls = status === "критично" ? "text-white" : status === "контроль" ? "text-white" : "text-white";
-  const ring = status === "критично" ? "ring-1 ring-destructive/40 bg-destructive/10" : "bg-white/[0.04]";
+  const statusText = { "норма": "text-success", "контроль": "text-warning", "критично": "text-destructive" }[status];
+  const wrap =
+    status === "критично"
+      ? "bg-destructive/15 border-destructive/40 ring-1 ring-destructive/30"
+      : status === "контроль"
+      ? "bg-warning/10 border-warning/30"
+      : "bg-white/[0.06] border-white/15";
+  const valueCls = status === "критично" ? "text-white" : "text-white";
   return (
-    <div className={`relative px-3 py-2.5 rounded-md border border-white/10 ${ring}`}>
-      <div className="flex items-center justify-between gap-2 mb-1">
-        <div className="text-[10px] uppercase tracking-wider text-white/55">{label}</div>
+    <div className={`relative px-3 py-2.5 rounded-md border ${wrap} shadow-[0_1px_0_0_hsl(0_0%_100%/0.04)_inset]`}>
+      <div className="flex items-center justify-between gap-2 mb-1.5">
+        <div className="text-[10px] uppercase tracking-wider text-white/70 font-medium">{label}</div>
         <div className="flex items-center gap-1">
           <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
-          <span className="text-[9px] uppercase tracking-wide text-white/65">{status}</span>
+          <span className={`text-[9px] uppercase tracking-wide font-semibold ${statusText}`}>{status}</span>
         </div>
       </div>
-      <div className={`font-display font-semibold text-base lg:text-lg num leading-tight ${valueCls}`}>{value}</div>
-      {meaning && <div className="text-[10px] text-white/55 mt-0.5 leading-snug">{meaning}</div>}
+      <div className={`font-display font-bold text-lg lg:text-xl num leading-tight ${valueCls}`}>{value}</div>
+      {meaning && <div className="text-[10.5px] text-white/70 mt-1 leading-snug">{meaning}</div>}
     </div>
   );
 }
