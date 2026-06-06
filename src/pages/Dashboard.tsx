@@ -15,8 +15,8 @@ const lowMarginCount = deals.filter(d => d.marginPct < 15 && d.stage === "Выи
 const planPct = Math.round(monthFact / monthPlan * 100);
 
 const severityCls = {
-  high: "border-l-destructive bg-destructive/5",
-  medium: "border-l-warning bg-warning/5",
+  high: "border-l-destructive bg-destructive/5 dark:bg-destructive/10 dark:border-destructive/30",
+  medium: "border-l-warning bg-warning/5 dark:bg-warning/10 dark:border-warning/30",
 };
 
 const sortedByQuality = [...managers].sort((a, b) => b.qualityIndex - a.qualityIndex);
