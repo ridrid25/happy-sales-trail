@@ -345,41 +345,11 @@ function DesktopView({ paidPct, unpaidPct }: { paidPct: number; unpaidPct: numbe
 
         <section>
           <SectionTitle icon={<ShieldAlert className="h-4 w-4" />} title="Риски" />
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mt-3">
-            <Stat label="Красные флаги" value={redFlags.filter(f => f.severity === "high").length} tone="danger" />
-            <Stat label="Проблемные клиенты" value="3" tone="danger" hint="статус «риск» / «стоп»" />
-            <Stat label="Сделки без движения" value="6" tone="warning" hint=">7 дней" />
-            <Stat label="Клиенты с просрочкой" value="5" tone="warning" />
-            <Stat label="Менеджеры в риск-зоне" value={managers.filter(m => m.risk !== "норма").length} tone="warning" />
+          <div className="mt-3">
+            <RiskBlock />
           </div>
         </section>
 
-        <Card
-          title={<span className="flex items-center gap-2"><AlertTriangle className="h-5 w-5 text-destructive" /> Красные флаги</span>}
-          subtitle="Проблема · Сумма · Кого касается · Рекомендуемое действие"
-        >
-          <div className="grid md:grid-cols-2 gap-2">
-            {redFlags.map((f, i) => (
-              <div key={i} className={`border-l-2 ${severityCls[f.severity]} px-4 py-3 rounded-r-md`}>
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <div className="text-sm font-semibold leading-snug">{f.title}</div>
-                  <Badge className={f.severity === "high" ? "bg-destructive/10 text-destructive border-destructive/30 shrink-0" : "bg-warning/10 text-warning border-warning/30 shrink-0"}>
-                    {f.severity === "high" ? "Высокий" : "Средний"}
-                  </Badge>
-                </div>
-                <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] mb-2">
-                  {f.amount && (<><div className="text-muted-foreground">Сумма / показатель</div><div className="num font-medium text-right">{f.amount}</div></>)}
-                  {f.who && (<><div className="text-muted-foreground">Кого касается</div><div className="font-medium text-right">{f.who}</div></>)}
-                  <div className="text-muted-foreground">Область</div><div className="text-right">{f.area}</div>
-                </div>
-                <div className="flex items-start gap-1.5 text-[12px] text-foreground/85 border-t border-border/60 pt-2">
-                  <ArrowRightCircle className="h-3.5 w-3.5 text-accent shrink-0 mt-0.5" />
-                  <span><span className="text-muted-foreground">Действие:</span> {f.action}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
 
         <div className="grid lg:grid-cols-3 gap-4">
           <Card title="План · Факт · Оплаты" subtitle="по неделям месяца" className="lg:col-span-2">
