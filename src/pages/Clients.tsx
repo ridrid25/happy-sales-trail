@@ -5,7 +5,7 @@ import { AlertTriangle } from "lucide-react";
 export default function Clients() {
   return (
     <>
-      <PageHeader title="Клиенты" subtitle="Финансовое качество клиентской базы" />
+      <PageHeader back={{ to: "/", label: "Дашборд" }} title="Клиенты" subtitle="Финансовое качество клиентской базы" />
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
         {clients.map((c) => {
