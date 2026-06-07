@@ -16,7 +16,7 @@ export default function PlanFact() {
 
   return (
     <>
-      <PageHeader title="План-факт" subtitle="Не только по выручке — но и по оплатам и марже" />
+      <PageHeader back={{ to: "/", label: "Дашборд" }} title="План-факт" subtitle="Не только по выручке — но и по оплатам и марже" />
 
       <div className="grid lg:grid-cols-3 gap-4 mb-6">
         {blocks.map((b) => {

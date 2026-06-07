@@ -1,14 +1,54 @@
 import { cn } from "@/lib/utils";
 import { ReactNode } from "react";
+import { Link } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 
-export function PageHeader({ title, subtitle, actions }: { title: string; subtitle?: string; actions?: ReactNode }) {
+export function BackLink({ to, label, className }: { to: string; label: string; className?: string }) {
   return (
-    <div className="flex items-start justify-between gap-4 mb-6">
-      <div>
-        <h1 className="font-display text-2xl lg:text-3xl font-semibold">{title}</h1>
-        {subtitle && <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>}
+    <Link
+      to={to}
+      className={cn(
+        "inline-flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground transition-colors",
+        className
+      )}
+    >
+      <ArrowLeft className="h-3.5 w-3.5" />
+      <span>{label}</span>
+    </Link>
+  );
+}
+
+export function PageHeader({
+  title, subtitle, actions, back, extraBack,
+}: {
+  title: string;
+  subtitle?: string;
+  actions?: ReactNode;
+  back?: { to: string; label: string };
+  extraBack?: { to: string; label: string };
+}) {
+  return (
+    <div className="mb-5 lg:mb-6">
+      {(back || extraBack) && (
+        <div className="flex items-center gap-3 mb-2">
+          {back && <BackLink to={back.to} label={back.label} />}
+          {extraBack && (
+            <>
+              <span className="text-muted-foreground/40 text-xs">·</span>
+              <Link to={extraBack.to} className="text-[12px] text-muted-foreground hover:text-foreground transition-colors">
+                {extraBack.label}
+              </Link>
+            </>
+          )}
+        </div>
+      )}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+        <div className="min-w-0">
+          <h1 className="font-display text-xl sm:text-2xl lg:text-3xl font-semibold leading-tight">{title}</h1>
+          {subtitle && <p className="text-[13px] sm:text-sm text-muted-foreground mt-1">{subtitle}</p>}
+        </div>
+        {actions && <div className="sm:shrink-0">{actions}</div>}
       </div>
-      {actions && <div className="shrink-0">{actions}</div>}
     </div>
   );
 }

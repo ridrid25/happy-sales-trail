@@ -15,7 +15,7 @@ export default function Receivables() {
 
   return (
     <>
-      <PageHeader title="Дебиторская задолженность" subtitle="Качество денег от продаж: оплаты, дебиторка, просрочка, риск кассового разрыва" />
+      <PageHeader back={{ to: "/", label: "Дашборд" }} title="Дебиторская задолженность" subtitle="Качество денег от продаж: оплаты, дебиторка, просрочка, риск кассового разрыва" />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
         <Stat label="Общая дебиторка" value={formatShort(totalReceivable) + " ₽"} />

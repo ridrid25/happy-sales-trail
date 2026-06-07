@@ -1,7 +1,7 @@
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { managers, deals, clients, formatRub, formatShort, riskColor, paymentStatusColor, managerHoldingCost, FINANCING_RATE } from "@/data/demo";
 import { Card, PageHeader, Stat, Badge, ProgressBar } from "@/components/ui-bits";
-import { AlertTriangle, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from "recharts";
 
 export default function ManagerProfile() {
@@ -19,10 +19,9 @@ export default function ManagerProfile() {
 
   return (
     <>
-      <Link to="/managers" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-3">
-        <ArrowLeft className="h-4 w-4" /> К списку менеджеров
-      </Link>
       <PageHeader
+        back={{ to: "/managers", label: "Менеджеры" }}
+        extraBack={{ to: "/", label: "Дашборд" }}
         title={m.name}
         subtitle={`${m.title} · Индекс качества ${m.qualityIndex}/100`}
         actions={<Badge className={riskColor[m.risk]}>{m.risk}</Badge>}
