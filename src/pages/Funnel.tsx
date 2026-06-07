@@ -10,6 +10,7 @@ export default function Funnel() {
   return (
     <>
       <PageHeader
+        back={{ to: "/", label: "Дашборд" }}
         title="Воронка продаж"
         subtitle="Количество и качество будущих денег: сумма, ожидаемая маржа, ожидаемые оплаты"
       />
