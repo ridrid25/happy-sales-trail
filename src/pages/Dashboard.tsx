@@ -87,28 +87,9 @@ function MobileView({ paidPct, unpaidPct }: { paidPct: number; unpaidPct: number
       {/* Главный финансовый блок — Деньги */}
       <MoneyHeroMobile paidPct={paidPct} unpaidPct={unpaidPct} />
 
-      {/* Риски — раскрыто */}
-      <CollapsibleSection
-        defaultOpen
-        icon={<ShieldAlert className="h-4 w-4" />}
-        title="Риски"
-        summary={`${redFlags.filter(f=>f.severity==='high').length} высоких · ${managers.filter(m=>m.risk!=='норма').length} менеджеров в зоне`}
-      >
-        <CompactRows
-          rows={[
-            { label: "Красные флаги (высокие)", value: String(redFlags.filter(f=>f.severity==='high').length), tone: "danger" },
-            { label: "Проблемные клиенты", value: "3", tone: "danger" },
-            { label: "Сделки без движения >7 дн", value: "6", tone: "warning" },
-            { label: "Клиенты с просрочкой", value: "5", tone: "warning" },
-            { label: "Менеджеры в риск-зоне", value: String(managers.filter(m=>m.risk!=='норма').length), tone: "warning" },
-          ]}
-        />
-        <div className="mt-3 -mx-1 space-y-1.5">
-          {redFlags.map((f, i) => (
-            <RedFlagRow key={i} flag={f} />
-          ))}
-        </div>
-      </CollapsibleSection>
+      {/* Риски — управляемый блок */}
+      <RiskBlock mobile />
+
 
       {/* Результат продаж — свернуто */}
       <CollapsibleSection
