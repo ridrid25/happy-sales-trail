@@ -9,6 +9,7 @@ import {
 import { Card, PageHeader, Stat, Badge, ProgressBar } from "@/components/ui-bits";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { AlertTriangle, TrendingUp, Wallet, Target, ShieldAlert, ArrowRight, ArrowRightCircle, ChevronDown } from "lucide-react";
+import { RiskBlock } from "@/components/RiskBlock";
 import {
   BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid
 } from "recharts";
