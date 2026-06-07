@@ -25,7 +25,7 @@ export default function Deals() {
 
   return (
     <>
-      <PageHeader title="Сделки" subtitle={`Всего: ${filtered.length} из ${deals.length}`} />
+      <PageHeader back={{ to: "/", label: "Дашборд" }} title="Сделки" subtitle={`Всего: ${filtered.length} из ${deals.length}`} />
 
       <Card className="mb-4">
         <div className="flex items-center gap-2 mb-3 text-sm font-medium text-muted-foreground">
