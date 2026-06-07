@@ -17,10 +17,11 @@ export default function Managers() {
   return (
     <>
       <PageHeader
+        back={{ to: "/", label: "Дашборд" }}
         title="Менеджеры"
         subtitle="Оценка по качеству продаж: маржа, оплаты, дебиторка — не только выручка"
         actions={
-          <select value={sort} onChange={(e) => setSort(e.target.value as Sort)} className="text-sm bg-card border border-border rounded-md px-3 py-1.5">
+          <select value={sort} onChange={(e) => setSort(e.target.value as Sort)} className="text-sm bg-card border border-border rounded-md px-3 py-1.5 w-full sm:w-auto">
             <option value="quality">По качеству продаж</option>
             <option value="fact">По выручке</option>
             <option value="margin">По марже</option>
