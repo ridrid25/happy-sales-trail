@@ -489,3 +489,63 @@ export const avgOverdueDays = (() => {
   return Math.round(od.reduce((s, d) => s + d.unpaid * d.overdueDays, 0) / sumAmt);
 })();
 
+// ===== Управляемая аналитика рисков =====
+
+export type RiskSeverity = "critical" | "control" | "watch";
+
+export const riskStructure = {
+  cashGap,
+  items: [
+    { label: "Просроченная дебиторка", value: formatShort(overdueReceivable) + " ₽", severity: "critical" as RiskSeverity },
+    { label: "Неоплаченная выручка", value: formatShort(monthFact - factPayments) + " ₽", severity: "control" as RiskSeverity },
+    { label: "Низкомаржинальные сделки", value: "5", severity: "control" as RiskSeverity },
+    { label: "Сделки без движения >7 дн", value: "6", severity: "control" as RiskSeverity },
+    { label: "Клиенты «риск»/«стоп»", value: "3", severity: "critical" as RiskSeverity },
+  ],
+};
+
+export const riskCauses: {
+  risk: string; amount: string; source: string; cause: string; owner: string; action: string; severity: RiskSeverity;
+}[] = [
+  { risk: "Просроченная дебиторка", amount: formatShort(overdueReceivable) + " ₽", source: "5 клиентов с просрочкой", cause: "Отсрочки без контроля и слабый follow-up", owner: "РОП + менеджеры", action: "Разобрать 3 крупнейших долга сегодня", severity: "critical" },
+  { risk: "Низкая маржа", amount: "5 сделок · −3,2 п.п. к плану", source: "Сделки ниже минимального порога 15%", cause: "Скидки без согласования с РОПом", owner: "РОП", action: "Ограничить сделки <15% маржи без согласования", severity: "control" },
+  { risk: "Кассовый разрыв", amount: "−" + formatShort(cashGap) + " ₽", source: "Прогноз поступлений ниже обязательных платежей", cause: "Часть оплат не поступит в срок (просрочка + отсрочки)", owner: "CFO / собственник", action: "Пересобрать платёжный календарь, ускорить взыскание", severity: "critical" },
+  { risk: "Клиенты «риск»/«стоп»", amount: "3 клиента · 1,87 млн ₽ просрочки", source: "«Альфа Логистика», «ТрейдГранд», «Лига Ритейл»", cause: "Продолжаются отгрузки с отсрочкой без согласования", owner: "Финдиректор + РОП", action: "Закрыть отгрузку до погашения, перевести на предоплату", severity: "critical" },
+];
+
+export const riskSources: {
+  source: string; amount: string; type: string; owner: string; action: string; severity: RiskSeverity;
+}[] = [
+  { source: "Иван Иванов", amount: "1,24 млн ₽", type: "просроченная дебиторка + низкая маржа", owner: "РОП", action: "Разобрать 3 сделки", severity: "critical" },
+  { source: "Клиент «Альфа Логистика»", amount: "620 тыс ₽", type: "просрочка + новая сделка с отсрочкой", owner: "менеджер + финансы", action: "Запретить новую отгрузку до оплаты", severity: "critical" },
+  { source: "Клиент «ТрейдГранд»", amount: "620 тыс ₽", type: "просрочка, статус «риск»", owner: "РОП + менеджер", action: "Перевести на предоплату 50%", severity: "critical" },
+  { source: "Клиент «Лига Ритейл»", amount: "580 тыс ₽", type: "просрочка 51 дн, статус «риск»", owner: "Финдиректор", action: "Остановить отгрузки, передать долг на работу", severity: "critical" },
+  { source: "Сделки со скидкой", amount: "≈ 420 тыс ₽ потерь маржи", type: "низкая маржа", owner: "РОП", action: "Проверить причины скидок", severity: "control" },
+  { source: "Сергей Минин", amount: "950 тыс ₽", type: "просрочка + отставание по плану", owner: "РОП", action: "Поставить промежуточные цели по pipeline", severity: "control" },
+];
+
+export const priorityActions: { title: string; effect: string; owner: string; due: string }[] = [
+  { title: "Разобрать 3 крупнейших долга", effect: "до 1,4 млн ₽ поступлений", owner: "РОП + менеджеры", due: "сегодня" },
+  { title: "Остановить отгрузку клиенту со статусом «стоп»", effect: "−580 тыс ₽ роста дебиторки", owner: "финансы + РОП", due: "сегодня" },
+  { title: "Проверить 5 сделок ниже минимальной маржи", effect: "−420 тыс ₽ потерь маржи", owner: "РОП", due: "2 дня" },
+  { title: "Перевести «ТрейдГранд» на предоплату 50%", effect: "−620 тыс ₽ риска", owner: "РОП + Финдиректор", due: "до конца недели" },
+  { title: "Назначить следующий шаг по 6 сделкам без движения", effect: "разморозить 4,2 млн ₽ pipeline", owner: "РОП", due: "сегодня" },
+];
+
+export const riskCounterDetails = {
+  problemClients: clients.filter(c => c.status === "риск" || c.status === "стоп").map(c => ({
+    name: c.name, amount: formatShort(c.overdue) + " ₽", days: c.maxOverdueDays, manager: c.manager,
+  })),
+  overdueClients: clients.filter(c => c.overdue > 0).sort((a, b) => b.overdue - a.overdue).map(c => ({
+    name: c.name, amount: formatShort(c.overdue) + " ₽", days: c.maxOverdueDays, manager: c.manager,
+  })),
+  stagnantDeals: deals
+    .filter(d => !["Выиграна", "Потеряна"].includes(d.stage))
+    .slice(0, 6)
+    .map(d => ({ name: d.client, amount: formatShort(d.amount) + " ₽", stage: d.stage, manager: d.manager })),
+  riskManagers: managers.filter(m => m.risk !== "норма").map(m => ({
+    name: m.name, risk: m.risk, overdue: formatShort(m.overdue) + " ₽", qualityIndex: m.qualityIndex,
+  })),
+};
+
+
