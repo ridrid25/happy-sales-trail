@@ -17,7 +17,7 @@ export default function Variance() {
 
   return (
     <>
-      <PageHeader title="Аналитика отклонений" subtitle="Что не так, почему и что делать" />
+      <PageHeader back={{ to: "/", label: "Дашборд" }} title="Аналитика отклонений" subtitle="Что не так, почему и что делать" />
 
       <div className="space-y-3">
         {varianceAnalysis.map((v, i) => (
