@@ -10,7 +10,7 @@ export default function Actions() {
 
   return (
     <>
-      <PageHeader title="Контроль действий" subtitle="Что не сделано и где остановилась работа" />
+      <PageHeader back={{ to: "/", label: "Дашборд" }} title="Контроль действий" subtitle="Что не сделано и где остановилась работа" />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         <Stat label="Задач на сегодня" value={today.length} icon={<Clock className="h-4 w-4 text-accent" />} />
