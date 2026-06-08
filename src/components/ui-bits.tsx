@@ -129,3 +129,13 @@ export function ProgressBar({ value, tone = "accent" }: { value: number; tone?: 
     </div>
   );
 }
+
+export function EmptyState({ title, hint, icon }: { title: string; hint?: string; icon?: ReactNode }) {
+  return (
+    <div className="flex flex-col items-center justify-center text-center py-10 px-4 rounded-lg border border-dashed border-border bg-muted/20">
+      {icon && <div className="h-9 w-9 rounded-md bg-muted/50 text-muted-foreground flex items-center justify-center mb-2">{icon}</div>}
+      <div className="text-sm font-medium text-foreground">{title}</div>
+      {hint && <div className="text-[12px] text-muted-foreground mt-1 max-w-xs">{hint}</div>}
+    </div>
+  );
+}
