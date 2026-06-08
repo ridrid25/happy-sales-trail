@@ -15,6 +15,7 @@ import Clients from "./pages/Clients";
 import PlanFact from "./pages/PlanFact";
 import Actions from "./pages/Actions";
 import Variance from "./pages/Variance";
+import Import1C from "./pages/Import1C";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -38,6 +39,7 @@ const App = () => (
               <Route path="/plan-fact" element={<PlanFact />} />
               <Route path="/actions" element={<Actions />} />
               <Route path="/variance" element={<Variance />} />
+              <Route path="/import-1c" element={<Import1C />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
