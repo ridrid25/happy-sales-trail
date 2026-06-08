@@ -2,7 +2,7 @@ import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useState } from "react";
 import {
   LayoutDashboard, Users, Briefcase, GitBranch, Wallet, Building2,
-  Target, ClipboardCheck, LineChart, Menu, X, ShieldCheck, Sun, Moon
+  Target, ClipboardCheck, LineChart, Menu, X, ShieldCheck, Sun, Moon, Database
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/ThemeProvider";
@@ -17,6 +17,7 @@ const nav = [
   { to: "/plan-fact", label: "План-факт", icon: Target },
   { to: "/actions", label: "Контроль действий", icon: ClipboardCheck },
   { to: "/variance", label: "Аналитика отклонений", icon: LineChart },
+  { to: "/import-1c", label: "Импорт из 1С", icon: Database },
 ];
 
 const roles = ["Собственник", "РОП", "Финдиректор", "Менеджер"];
