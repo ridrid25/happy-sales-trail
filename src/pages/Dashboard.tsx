@@ -326,7 +326,7 @@ function DesktopView({ paidPct, unpaidPct }: { paidPct: number; unpaidPct: numbe
             <Stat label="Средняя маржинальность" value="22,4%" hint="цель 25%" tone="warning" />
             <Stat label="Низкомаржинальные" value={lowMarginCount} hint="<15% маржи" tone="danger" />
             <Stat label="Сделки со скидкой" value="9" hint="из 22 выигранных" />
-            <Stat label="Ниже мин. маржи" value="5" tone="danger" hint="требуют разбора" />
+            <Stat label="Ниже мин. маржи" value="5" tone="danger" hint="проверить причины скидок" />
           </div>
         </section>
 
