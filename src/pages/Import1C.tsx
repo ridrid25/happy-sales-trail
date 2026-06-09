@@ -1,11 +1,15 @@
-import { useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { PageHeader, Card, Stat, Badge, ProgressBar } from "@/components/ui-bits";
 import {
   Upload, FileDown, ShieldCheck, FileSpreadsheet, FileJson, FileText,
   CheckCircle2, AlertTriangle, XCircle, ChevronDown, ChevronRight,
-  Database, ArrowRight, History, Info, Link2,
+  Database, ArrowRight, History, Info, Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  ALL_FIELDS, REQUIRED_FIELDS, buildTemplateCSV, parseFile,
+  validateRecords, summarize, type ParseResult, type Issue, type ReceivableRow,
+} from "@/lib/receivablesImport";
 
 type FileType = "sales" | "payments" | "receivables" | "clients" | "managers";
 
@@ -27,8 +31,8 @@ const fileTypes: { id: FileType; title: string; desc: string; fields: string[]; 
   {
     id: "receivables",
     title: "Дебиторка",
-    desc: "Остатки задолженности",
-    fields: ["receivable_id", "клиент", "инн", "договор", "менеджер", "сумма_долга", "сумма_просрочки", "дата_возникновения", "дата_плановой_оплаты", "дней_просрочки", "статус_оплаты", "комментарий"],
+    desc: "Остатки задолженности · рабочая загрузка CSV/JSON",
+    fields: [...ALL_FIELDS],
     checks: ["долг без клиента", "долг без менеджера", "нет даты плановой оплаты", "просрочка есть, но дней не указано", "сумма просрочки > суммы долга", "отрицательная сумма долга", "статус не соответствует суммам"],
   },
   {
@@ -47,7 +51,8 @@ const fileTypes: { id: FileType; title: string; desc: string; fields: string[]; 
   },
 ];
 
-const lastImport = {
+// Demo defaults — shown until user applies their own file
+const demoLastImport = {
   date: "08.06.2026 09:30",
   source: "1С",
   format: "CSV",
@@ -57,17 +62,9 @@ const lastImport = {
   warnings: 12,
   quality: 92,
 };
+const demoErrors = ["3 сделки без менеджера", "2 оплаты не связаны с продажами", "1 клиент без ИНН"];
+const demoWarnings = ["5 сделок с отрицательной маржей", "4 клиента превысили лимит дебиторки", "7 оплат без привязки к договору"];
 
-const errorsList = [
-  "3 сделки без менеджера",
-  "2 оплаты не связаны с продажами",
-  "1 клиент без ИНН",
-];
-const warningsList = [
-  "5 сделок с отрицательной маржей",
-  "4 клиента превысили лимит дебиторки",
-  "7 оплат без привязки к договору",
-];
 const recommendations = [
   "Заполнить менеджеров в документах реализации",
   "Связать оплаты с sale_id",
@@ -84,12 +81,10 @@ const mapping = [
   { from: "Дата платежа по договору", to: "Дата плановой оплаты" },
 ];
 
-const history = [
-  { date: "08.06.2026 09:30", type: "Продажи", records: 420, errors: 0, warnings: 6, status: "ok" as const, user: "А. Новиков" },
-  { date: "08.06.2026 09:35", type: "Оплаты", records: 310, errors: 2, warnings: 4, status: "warnings" as const, user: "А. Новиков" },
-  { date: "08.06.2026 09:40", type: "Дебиторка", records: 180, errors: 1, warnings: 2, status: "ok" as const, user: "А. Новиков" },
-  { date: "07.06.2026 18:12", type: "Клиенты", records: 248, errors: 0, warnings: 0, status: "ok" as const, user: "Е. Дронова" },
-  { date: "07.06.2026 18:05", type: "Менеджеры и планы", records: 14, errors: 0, warnings: 1, status: "ok" as const, user: "Е. Дронова" },
+const initialHistory = [
+  { date: "08.06.2026 09:30", type: "Продажи", records: 420, errors: 0, warnings: 6, status: "ok" as const, user: "А. Новиков", fileName: "—" },
+  { date: "08.06.2026 09:35", type: "Оплаты", records: 310, errors: 2, warnings: 4, status: "warnings" as const, user: "А. Новиков", fileName: "—" },
+  { date: "07.06.2026 18:12", type: "Клиенты", records: 248, errors: 0, warnings: 0, status: "ok" as const, user: "Е. Дронова", fileName: "—" },
 ];
 
 const downstream = [
@@ -104,51 +99,278 @@ function StatusBadge({ status }: { status: "ok" | "warnings" | "errors" }) {
   return <Badge className="bg-destructive/15 text-destructive border-destructive/30"><XCircle className="h-3 w-3" /> Есть ошибки</Badge>;
 }
 
+function downloadFile(name: string, content: string, mime: string) {
+  const blob = new Blob([content], { type: mime + ";charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = name; document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+
+function fmtMoney(v: number) { return v.toLocaleString("ru-RU") + " ₽"; }
+function fmtShort(v: number) {
+  if (v >= 1_000_000) return (v / 1_000_000).toFixed(2).replace(".", ",") + " млн ₽";
+  if (v >= 1_000) return Math.round(v / 1_000) + " тыс ₽";
+  return v + " ₽";
+}
+function nowStamp() {
+  const d = new Date();
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+type AppliedSummary = {
+  fileName: string;
+  format: "CSV" | "JSON";
+  date: string;
+  records: number;
+  errors: number;
+  warnings: number;
+  quality: number;
+  totalDebt: number;
+  totalOverdue: number;
+  totalCost: number;
+  avgDays: number;
+  overduePct: number;
+  clientsOverdue: number;
+};
+
 export default function Import1C() {
-  const [openType, setOpenType] = useState<FileType | null>("sales");
+  const [openType, setOpenType] = useState<FileType | null>("receivables");
   const [showErr, setShowErr] = useState(true);
   const [showWarn, setShowWarn] = useState(false);
+
+  // Receivables import state
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [parseError, setParseError] = useState<string | null>(null);
+  const [fileInfo, setFileInfo] = useState<{ name: string; format: "CSV" | "JSON" } | null>(null);
+  const [result, setResult] = useState<ParseResult | null>(null);
+  const [previewErrOpen, setPreviewErrOpen] = useState(true);
+  const [previewWarnOpen, setPreviewWarnOpen] = useState(false);
+  const [applied, setApplied] = useState<AppliedSummary | null>(null);
+  const [history, setHistory] = useState(initialHistory);
+
+  const summary = useMemo(() => (result ? summarize(result) : null), [result]);
+  const quality = useMemo(() => {
+    if (!result || result.rows.length === 0) return 0;
+    const bad = new Set(result.errors.map((e) => e.row)).size;
+    return Math.max(0, Math.round((1 - bad / result.rows.length) * 100));
+  }, [result]);
+
+  const lastImport = applied ?? demoLastImport;
+  const lastStatus: "ok" | "warnings" | "errors" = applied
+    ? (applied.errors > 0 ? "errors" : applied.warnings > 0 ? "warnings" : "ok")
+    : demoLastImport.status;
+  const lastErrorsList = applied ? [] : demoErrors;
+  const lastWarningsList = applied ? [] : demoWarnings;
+
+  async function onFileChosen(file: File) {
+    setParseError(null);
+    const name = file.name.toLowerCase();
+    if (!name.endsWith(".csv") && !name.endsWith(".json")) {
+      setParseError("Сейчас поддерживаются CSV и JSON. XLSX будет добавлен позже.");
+      setFileInfo(null); setResult(null);
+      return;
+    }
+    try {
+      const { records, format } = await parseFile(file);
+      const validated = validateRecords(records);
+      setFileInfo({ name: file.name, format });
+      setResult(validated);
+      setPreviewErrOpen(true);
+      setPreviewWarnOpen(false);
+    } catch (e) {
+      setParseError("Не удалось прочитать файл. Проверьте, что это валидный CSV или JSON.");
+      setFileInfo(null); setResult(null);
+      console.error(e);
+    }
+  }
+
+  function handleApply() {
+    if (!result || !fileInfo || !summary) return;
+    if (result.errors.length > 0) return;
+    const errRows = new Set(result.errors.map((e) => e.row)).size;
+    const warnRows = new Set(result.warnings.map((w) => w.row)).size;
+    const a: AppliedSummary = {
+      fileName: fileInfo.name,
+      format: fileInfo.format,
+      date: nowStamp(),
+      records: result.rows.length,
+      errors: errRows,
+      warnings: warnRows,
+      quality,
+      ...summary,
+    };
+    setApplied(a);
+    setHistory((h) => [{
+      date: a.date,
+      type: "Дебиторка",
+      records: a.records,
+      errors: a.errors,
+      warnings: a.warnings,
+      status: a.errors > 0 ? "errors" : a.warnings > 0 ? "warnings" : "ok",
+      user: "вы",
+      fileName: a.fileName,
+    }, ...h]);
+  }
+
+  function handleDownloadTemplate() {
+    downloadFile("debtors_template.csv", buildTemplateCSV(), "text/csv");
+  }
 
   return (
     <>
       <PageHeader
         back={{ to: "/", label: "Дашборд" }}
         title="Импорт из 1С"
-        subtitle="Безопасная загрузка данных из 1С через выгрузку файлов · демо-режим"
+        subtitle="Ручной импорт из выгрузки 1С · файл обрабатывается локально в браузере · прямого подключения к базе 1С нет"
         actions={
           <div className="flex flex-wrap gap-2">
-            <button className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium bg-accent text-accent-foreground hover:opacity-90">
-              <Upload className="h-4 w-4" /> Загрузить файл
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium bg-accent text-accent-foreground hover:opacity-90"
+            >
+              <Upload className="h-4 w-4" /> Загрузить файл дебиторки
             </button>
-            <button className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium border border-border hover:bg-muted">
-              <FileDown className="h-4 w-4" /> Скачать шаблон
-            </button>
-            <button className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium border border-border hover:bg-muted">
-              <ShieldCheck className="h-4 w-4" /> Проверить данные
+            <button
+              onClick={handleDownloadTemplate}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium border border-border hover:bg-muted"
+            >
+              <FileDown className="h-4 w-4" /> Скачать шаблон дебиторки
             </button>
           </div>
         }
       />
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".csv,.json,.xlsx,application/json,text/csv"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) onFileChosen(f);
+          e.target.value = "";
+        }}
+      />
+
+      {parseError && (
+        <div className="mb-4 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-[13px] text-destructive flex items-start gap-2">
+          <XCircle className="h-4 w-4 mt-0.5 shrink-0" />
+          <span>{parseError}</span>
+        </div>
+      )}
 
       {/* Last import summary */}
-      <Card title="Последний импорт" subtitle={`${lastImport.date} · Источник: ${lastImport.source} · Формат: ${lastImport.format}`}>
+      <Card
+        title="Последний импорт"
+        subtitle={
+          applied
+            ? `${applied.date} · Источник: файл · Формат: ${applied.format} · ${applied.fileName}`
+            : `${demoLastImport.date} · Источник: ${demoLastImport.source} · Формат: ${demoLastImport.format} · демо-данные`
+        }
+      >
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
           <Stat label="Загружено записей" value={lastImport.records.toLocaleString("ru-RU")} hint="строк из файла" />
           <Stat label="Ошибки" value={lastImport.errors} tone={lastImport.errors > 0 ? "danger" : "success"} hint="требуют исправления" />
           <Stat label="Предупреждения" value={lastImport.warnings} tone="warning" hint="не блокируют импорт" />
           <Stat label="Качество данных" value={`${lastImport.quality}%`} tone={lastImport.quality >= 95 ? "success" : "warning"} hint="доля корректных записей" />
         </div>
-        <div className="flex items-center gap-2"><StatusBadge status={lastImport.status} /></div>
+        <div className="flex items-center gap-2 mb-3"><StatusBadge status={lastStatus} /></div>
+
+        {applied && (
+          <>
+            <div className="text-[11px] uppercase text-muted-foreground mb-2">Показатели по применённой дебиторке</div>
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+              <Stat label="Общая дебиторка" value={fmtShort(applied.totalDebt)} hint="из загруженного файла" />
+              <Stat label="Просроченная дебиторка" value={fmtShort(applied.totalOverdue)} tone={applied.totalOverdue > 0 ? "warning" : "success"} hint={`${applied.overduePct}% от долга`} />
+              <Stat label="Стоимость просрочки" value={fmtShort(applied.totalCost)} tone="danger" hint="24% годовых × дней / 365" />
+              <Stat label="Средний срок просрочки" value={`${applied.avgDays} дн`} tone={applied.avgDays > 30 ? "danger" : "warning"} hint="по строкам с просрочкой" />
+              <Stat label="Клиенты с просрочкой" value={applied.clientsOverdue} hint="уникальные ИНН/клиенты" />
+              <Stat label="Статус импорта" value={applied.errors > 0 ? "ошибки" : applied.warnings > 0 ? "с предупреждениями" : "применено"} tone={applied.errors > 0 ? "danger" : applied.warnings > 0 ? "warning" : "success"} />
+            </div>
+            <div className="mt-3 rounded-md border border-warning/30 bg-warning/5 px-3 py-2 text-[12px] text-foreground/90 flex items-start gap-1.5">
+              <Info className="h-4 w-4 text-warning mt-0.5 shrink-0" />
+              <span>Данные дебиторки применены в демо-режиме. Полный пересчёт всех разделов будет добавлен на следующем этапе.</span>
+            </div>
+          </>
+        )}
       </Card>
+
+      {/* Preview block — only when a file has been parsed */}
+      {result && fileInfo && summary && (
+        <div className="mt-4">
+          <Card
+            title="Предпросмотр файла"
+            subtitle={`${fileInfo.name} · ${fileInfo.format} · обработано локально в браузере`}
+          >
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+              <Stat label="Строк в файле" value={result.rows.length} />
+              <Stat label="Корректных строк" value={result.rows.length - new Set(result.errors.map((e) => e.row)).size} tone="success" />
+              <Stat label="Ошибок" value={result.errors.length} tone={result.errors.length > 0 ? "danger" : "success"} />
+              <Stat label="Предупреждений" value={result.warnings.length} tone={result.warnings.length > 0 ? "warning" : "success"} />
+            </div>
+
+            <div className="mb-3 flex items-center gap-3">
+              <div className="num font-display text-2xl font-semibold">{quality}%</div>
+              <div className="flex-1"><ProgressBar value={quality} tone={quality >= 95 ? "success" : quality >= 70 ? "warning" : "danger"} /></div>
+              <div className="text-[11px] text-muted-foreground">качество</div>
+            </div>
+
+            <div className="mb-2 text-[11px] uppercase text-muted-foreground">Первые 5 строк</div>
+            <RowsPreview rows={result.rows.slice(0, 5)} />
+
+            <div className="mt-4 space-y-2">
+              <button onClick={() => setPreviewErrOpen(!previewErrOpen)} className="w-full flex items-center justify-between px-3 py-2 rounded-md border border-destructive/30 bg-destructive/5 hover:bg-destructive/10">
+                <span className="flex items-center gap-2 text-sm font-medium text-destructive"><XCircle className="h-4 w-4" /> Критичные ошибки · {result.errors.length}</span>
+                {previewErrOpen ? <ChevronDown className="h-4 w-4 text-destructive" /> : <ChevronRight className="h-4 w-4 text-destructive" />}
+              </button>
+              {previewErrOpen && <IssueList items={result.errors} tone="destructive" empty="Критичных ошибок нет." />}
+
+              <button onClick={() => setPreviewWarnOpen(!previewWarnOpen)} className="w-full flex items-center justify-between px-3 py-2 rounded-md border border-warning/30 bg-warning/5 hover:bg-warning/10">
+                <span className="flex items-center gap-2 text-sm font-medium text-warning"><AlertTriangle className="h-4 w-4" /> Предупреждения · {result.warnings.length}</span>
+                {previewWarnOpen ? <ChevronDown className="h-4 w-4 text-warning" /> : <ChevronRight className="h-4 w-4 text-warning" />}
+              </button>
+              {previewWarnOpen && <IssueList items={result.warnings} tone="warning" empty="Предупреждений нет." />}
+            </div>
+
+            <div className="mt-4 grid sm:grid-cols-2 gap-3 items-center">
+              <div className="text-[12px] text-muted-foreground">
+                Итоговая стоимость просрочки по файлу: <span className="num font-medium text-foreground">{fmtMoney(summary.totalCost)}</span>
+              </div>
+              <div className="flex sm:justify-end gap-2 flex-wrap">
+                <button
+                  disabled={result.errors.length > 0}
+                  onClick={handleApply}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium",
+                    result.errors.length > 0
+                      ? "bg-muted text-muted-foreground cursor-not-allowed"
+                      : "bg-accent text-accent-foreground hover:opacity-90"
+                  )}
+                  title={result.errors.length > 0 ? "Сначала исправьте критичные ошибки" : "Применить данные к дашборду"}
+                >
+                  <Sparkles className="h-4 w-4" /> Применить данные к дашборду
+                </button>
+              </div>
+            </div>
+            {result.errors.length > 0 && (
+              <div className="mt-2 text-[12px] text-destructive">
+                Применить нельзя: есть критичные ошибки. Исправьте файл и загрузите снова.
+              </div>
+            )}
+          </Card>
+        </div>
+      )}
 
       {/* Supported file types */}
       <div className="mt-4">
-        <Card title="Поддерживаемые типы файлов" subtitle="MVP: CSV / JSON / XLSX · реальный парсинг XLSX появится позже">
+        <Card title="Поддерживаемые типы файлов" subtitle="MVP: реально работает только «Дебиторка» (CSV/JSON). Остальные — демо-шаблоны.">
           <div className="space-y-2">
             {fileTypes.map((ft) => {
               const open = openType === ft.id;
+              const isReceivables = ft.id === "receivables";
               return (
-                <div key={ft.id} className="border border-border rounded-md overflow-hidden">
+                <div key={ft.id} className={cn("border rounded-md overflow-hidden", isReceivables ? "border-accent/40" : "border-border")}>
                   <button
                     onClick={() => setOpenType(open ? null : ft.id)}
                     className="w-full flex items-center justify-between gap-3 px-3 py-2.5 hover:bg-muted/40 text-left"
@@ -156,7 +378,11 @@ export default function Import1C() {
                     <div className="flex items-center gap-2 min-w-0">
                       <FileSpreadsheet className="h-4 w-4 text-muted-foreground shrink-0" />
                       <div className="min-w-0">
-                        <div className="text-sm font-medium truncate">{ft.title}</div>
+                        <div className="text-sm font-medium truncate flex items-center gap-2">
+                          {ft.title}
+                          {isReceivables && <Badge className="bg-accent/15 text-accent border-accent/30">рабочий</Badge>}
+                          {!isReceivables && <Badge className="border-border text-muted-foreground">демо</Badge>}
+                        </div>
                         <div className="text-[11px] text-muted-foreground truncate">{ft.desc}</div>
                       </div>
                     </div>
@@ -172,10 +398,19 @@ export default function Import1C() {
                       <div>
                         <div className="text-[10px] uppercase text-muted-foreground mb-1.5">Поля шаблона</div>
                         <div className="flex flex-wrap gap-1">
-                          {ft.fields.map((f) => (
-                            <span key={f} className="text-[11px] px-1.5 py-0.5 rounded bg-card border border-border font-mono">{f}</span>
-                          ))}
+                          {ft.fields.map((f) => {
+                            const req = isReceivables && (REQUIRED_FIELDS as readonly string[]).includes(f);
+                            return (
+                              <span key={f} className={cn(
+                                "text-[11px] px-1.5 py-0.5 rounded border font-mono",
+                                req ? "bg-accent/10 border-accent/30 text-accent" : "bg-card border-border"
+                              )}>
+                                {f}{req ? " *" : ""}
+                              </span>
+                            );
+                          })}
                         </div>
+                        {isReceivables && <div className="mt-2 text-[10px] text-muted-foreground">* — обязательное поле</div>}
                       </div>
                       <div>
                         <div className="text-[10px] uppercase text-muted-foreground mb-1.5">Проверки качества</div>
@@ -187,9 +422,26 @@ export default function Import1C() {
                             </li>
                           ))}
                         </ul>
-                        <button className="mt-2 inline-flex items-center gap-1 text-[12px] text-accent hover:underline">
-                          <FileDown className="h-3.5 w-3.5" /> Скачать шаблон «{ft.title}»
-                        </button>
+                        {isReceivables ? (
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            <button
+                              onClick={() => fileInputRef.current?.click()}
+                              className="inline-flex items-center gap-1 text-[12px] px-2 py-1 rounded-md bg-accent text-accent-foreground hover:opacity-90"
+                            >
+                              <Upload className="h-3.5 w-3.5" /> Загрузить файл
+                            </button>
+                            <button
+                              onClick={handleDownloadTemplate}
+                              className="inline-flex items-center gap-1 text-[12px] px-2 py-1 rounded-md border border-border hover:bg-muted"
+                            >
+                              <FileDown className="h-3.5 w-3.5" /> Скачать шаблон
+                            </button>
+                          </div>
+                        ) : (
+                          <button className="mt-2 inline-flex items-center gap-1 text-[12px] text-muted-foreground cursor-not-allowed">
+                            <FileDown className="h-3.5 w-3.5" /> Шаблон появится позже
+                          </button>
+                        )}
                       </div>
                     </div>
                   )}
@@ -200,45 +452,47 @@ export default function Import1C() {
         </Card>
       </div>
 
-      {/* Quality */}
-      <div className="mt-4 grid lg:grid-cols-3 gap-4">
-        <Card className="lg:col-span-2" title="Качество данных" subtitle="Сводка по последнему импорту">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="num font-display text-3xl font-semibold">{lastImport.quality}%</div>
-            <div className="flex-1"><ProgressBar value={lastImport.quality} tone={lastImport.quality >= 95 ? "success" : "warning"} /></div>
-          </div>
-          <div className="space-y-2">
-            <button onClick={() => setShowErr(!showErr)} className="w-full flex items-center justify-between px-3 py-2 rounded-md border border-destructive/30 bg-destructive/5 hover:bg-destructive/10">
-              <span className="flex items-center gap-2 text-sm font-medium text-destructive"><XCircle className="h-4 w-4" /> Ошибки · {errorsList.length}</span>
-              {showErr ? <ChevronDown className="h-4 w-4 text-destructive" /> : <ChevronRight className="h-4 w-4 text-destructive" />}
-            </button>
-            {showErr && (
-              <ul className="pl-4 space-y-1">
-                {errorsList.map((e) => <li key={e} className="text-[13px] text-foreground/90 list-disc">{e}</li>)}
-              </ul>
-            )}
-            <button onClick={() => setShowWarn(!showWarn)} className="w-full flex items-center justify-between px-3 py-2 rounded-md border border-warning/30 bg-warning/5 hover:bg-warning/10">
-              <span className="flex items-center gap-2 text-sm font-medium text-warning"><AlertTriangle className="h-4 w-4" /> Предупреждения · {warningsList.length}</span>
-              {showWarn ? <ChevronDown className="h-4 w-4 text-warning" /> : <ChevronRight className="h-4 w-4 text-warning" />}
-            </button>
-            {showWarn && (
-              <ul className="pl-4 space-y-1">
-                {warningsList.map((w) => <li key={w} className="text-[13px] text-foreground/90 list-disc">{w}</li>)}
-              </ul>
-            )}
-          </div>
-        </Card>
-        <Card title="Рекомендации" subtitle="Как поднять качество">
-          <ul className="space-y-2">
-            {recommendations.map((r) => (
-              <li key={r} className="flex items-start gap-2 text-[13px]">
-                <CheckCircle2 className="h-4 w-4 text-success mt-0.5 shrink-0" />
-                <span>{r}</span>
-              </li>
-            ))}
-          </ul>
-        </Card>
-      </div>
+      {/* Quality (legacy summary, hidden when user applied own data) */}
+      {!applied && (
+        <div className="mt-4 grid lg:grid-cols-3 gap-4">
+          <Card className="lg:col-span-2" title="Качество данных" subtitle="Сводка по последнему демо-импорту">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="num font-display text-3xl font-semibold">{demoLastImport.quality}%</div>
+              <div className="flex-1"><ProgressBar value={demoLastImport.quality} tone={demoLastImport.quality >= 95 ? "success" : "warning"} /></div>
+            </div>
+            <div className="space-y-2">
+              <button onClick={() => setShowErr(!showErr)} className="w-full flex items-center justify-between px-3 py-2 rounded-md border border-destructive/30 bg-destructive/5 hover:bg-destructive/10">
+                <span className="flex items-center gap-2 text-sm font-medium text-destructive"><XCircle className="h-4 w-4" /> Ошибки · {lastErrorsList.length}</span>
+                {showErr ? <ChevronDown className="h-4 w-4 text-destructive" /> : <ChevronRight className="h-4 w-4 text-destructive" />}
+              </button>
+              {showErr && (
+                <ul className="pl-4 space-y-1">
+                  {lastErrorsList.map((e) => <li key={e} className="text-[13px] text-foreground/90 list-disc">{e}</li>)}
+                </ul>
+              )}
+              <button onClick={() => setShowWarn(!showWarn)} className="w-full flex items-center justify-between px-3 py-2 rounded-md border border-warning/30 bg-warning/5 hover:bg-warning/10">
+                <span className="flex items-center gap-2 text-sm font-medium text-warning"><AlertTriangle className="h-4 w-4" /> Предупреждения · {lastWarningsList.length}</span>
+                {showWarn ? <ChevronDown className="h-4 w-4 text-warning" /> : <ChevronRight className="h-4 w-4 text-warning" />}
+              </button>
+              {showWarn && (
+                <ul className="pl-4 space-y-1">
+                  {lastWarningsList.map((w) => <li key={w} className="text-[13px] text-foreground/90 list-disc">{w}</li>)}
+                </ul>
+              )}
+            </div>
+          </Card>
+          <Card title="Рекомендации" subtitle="Как поднять качество">
+            <ul className="space-y-2">
+              {recommendations.map((r) => (
+                <li key={r} className="flex items-start gap-2 text-[13px]">
+                  <CheckCircle2 className="h-4 w-4 text-success mt-0.5 shrink-0" />
+                  <span>{r}</span>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        </div>
+      )}
 
       {/* Field mapping */}
       <div className="mt-4">
@@ -261,7 +515,7 @@ export default function Import1C() {
 
       {/* History */}
       <div className="mt-4">
-        <Card title="История импортов" subtitle="Последние загрузки">
+        <Card title="История импортов" subtitle="Сессионная история — не сохраняется между перезагрузками страницы">
           <div className="space-y-2">
             {history.map((h, i) => (
               <div key={i} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 px-3 py-2.5 rounded-md border border-border bg-card">
@@ -270,7 +524,7 @@ export default function Import1C() {
                   <span className="text-[12px] text-muted-foreground num">{h.date}</span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium">{h.type}</div>
+                  <div className="text-sm font-medium truncate">{h.type}{h.fileName && h.fileName !== "—" ? ` · ${h.fileName}` : ""}</div>
                   <div className="text-[11px] text-muted-foreground">
                     {h.records} записей · {h.errors} ошибок · {h.warnings} предупреждений · {h.user}
                   </div>
@@ -284,7 +538,7 @@ export default function Import1C() {
 
       {/* Downstream effect */}
       <div className="mt-4 grid lg:grid-cols-2 gap-4">
-        <Card title="Что обновляется после импорта" subtitle="Дашборд обновляется только после успешной проверки">
+        <Card title="Что обновляется после импорта" subtitle="В MVP пересчёт показан в блоке «Последний импорт». Полный пересчёт всех разделов — на следующем этапе.">
           <div className="flex flex-wrap gap-1.5 mb-3">
             {downstream.map((d) => (
               <span key={d} className="text-[12px] px-2 py-1 rounded-md bg-muted border border-border">{d}</span>
@@ -292,18 +546,18 @@ export default function Import1C() {
           </div>
           <div className="text-[12px] text-muted-foreground flex items-start gap-1.5">
             <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-            <span>Записи с критичными ошибками не попадают в расчёты. Сначала их нужно исправить в 1С и загрузить повторно.</span>
+            <span>Записи с критичными ошибками не попадают в расчёты. Сначала их нужно исправить и загрузить файл повторно.</span>
           </div>
         </Card>
 
         {/* Security */}
         <Card title="Безопасная схема подключения 1С" subtitle="Почему через файлы, а не напрямую">
           <p className="text-[13px] text-foreground/85 mb-3">
-            На первом этапе приложение не подключается к 1С напрямую. Данные загружаются через контролируемую выгрузку файлов.
-            Это снижает риски для учетной базы и позволяет проверить качество данных до обновления дашборда.
+            Приложение не подключается к 1С напрямую. Данные загружаются через контролируемую выгрузку файлов и обрабатываются локально в браузере.
+            Это снижает риски для учётной базы и позволяет проверить качество данных до обновления показателей.
           </p>
           <div className="flex flex-wrap items-center gap-2 text-[12px] mb-3">
-            {["1С", "Выгрузка CSV / JSON / XLSX", "Проверка данных", "Импорт", "Дашборд"].map((s, i, arr) => (
+            {["1С", "Выгрузка CSV / JSON", "Проверка в браузере", "Применение", "Дашборд"].map((s, i, arr) => (
               <div key={s} className="flex items-center gap-2">
                 <span className={cn("px-2 py-1 rounded-md border", i === 0 ? "bg-accent/10 border-accent/30 text-accent" : i === arr.length - 1 ? "bg-success/10 border-success/30 text-success" : "bg-card border-border")}>
                   {s}
@@ -314,14 +568,99 @@ export default function Import1C() {
           </div>
           <div className="rounded-md border border-warning/30 bg-warning/5 px-3 py-2 text-[12px] text-foreground/90 flex items-start gap-1.5">
             <AlertTriangle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
-            <span>Не рекомендуется подключать веб-приложение напрямую к базе 1С. Для промышленной интеграции лучше использовать промежуточный backend или регламентную выгрузку.</span>
+            <span>Файл обрабатывается локально в интерфейсе приложения. Прямого подключения к базе 1С нет.</span>
           </div>
           <div className="mt-3 text-[11px] text-muted-foreground flex items-start gap-1.5">
             <Database className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-            <span>Текущий статус: демо-режим на примере данных. Реальная обработка XLSX появится после согласования формата выгрузки с вашим 1С-специалистом.</span>
+            <span>Текущий статус: рабочий импорт дебиторки (CSV/JSON). Остальные типы файлов — демо-шаблоны.</span>
           </div>
         </Card>
       </div>
     </>
+  );
+}
+
+// ====== Sub-components ======
+
+function RowsPreview({ rows }: { rows: ReceivableRow[] }) {
+  if (rows.length === 0) {
+    return <div className="text-[12px] text-muted-foreground px-3 py-4 rounded-md border border-dashed border-border">В файле нет строк данных.</div>;
+  }
+  return (
+    <>
+      {/* Mobile: compact cards */}
+      <div className="space-y-2 md:hidden">
+        {rows.map((r) => (
+          <div key={`${r.rowNum}-${r.receivable_id}`} className="rounded-md border border-border bg-card px-3 py-2 text-[12px]">
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <div className="font-medium truncate">{r.клиент || <span className="text-muted-foreground">— клиент —</span>}</div>
+              <Badge className="border-border text-muted-foreground">#{r.rowNum}</Badge>
+            </div>
+            <div className="text-muted-foreground">{r.менеджер || "— менеджер —"} · ИНН {r.инн || "—"}</div>
+            <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 mt-1">
+              <div>Долг: <span className="num font-medium text-foreground">{fmtShort(r.сумма_долга)}</span></div>
+              <div>Просрочка: <span className="num font-medium text-foreground">{fmtShort(r.сумма_просрочки)}</span></div>
+              <div>Дней: <span className="num font-medium text-foreground">{r.дней_просрочки}</span></div>
+              <div>Стоимость: <span className="num font-medium text-foreground">{fmtShort(r.стоимость_просрочки)}</span></div>
+            </div>
+            <div className="text-muted-foreground mt-1">Статус: {r.статус_оплаты || "—"}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop: table */}
+      <div className="hidden md:block overflow-x-auto rounded-md border border-border">
+        <table className="w-full text-[12px]">
+          <thead className="bg-muted/40 text-muted-foreground">
+            <tr>
+              <th className="text-left px-2 py-1.5">#</th>
+              <th className="text-left px-2 py-1.5">Клиент</th>
+              <th className="text-left px-2 py-1.5">Менеджер</th>
+              <th className="text-right px-2 py-1.5">Долг</th>
+              <th className="text-right px-2 py-1.5">Просрочка</th>
+              <th className="text-right px-2 py-1.5">Дней</th>
+              <th className="text-right px-2 py-1.5">Стоимость</th>
+              <th className="text-left px-2 py-1.5">Статус</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={`${r.rowNum}-${r.receivable_id}`} className="border-t border-border">
+                <td className="px-2 py-1.5 text-muted-foreground">{r.rowNum}</td>
+                <td className="px-2 py-1.5 truncate max-w-[180px]">{r.клиент || "—"}</td>
+                <td className="px-2 py-1.5 truncate max-w-[150px]">{r.менеджер || "—"}</td>
+                <td className="px-2 py-1.5 text-right num">{fmtShort(r.сумма_долга)}</td>
+                <td className="px-2 py-1.5 text-right num">{fmtShort(r.сумма_просрочки)}</td>
+                <td className="px-2 py-1.5 text-right num">{r.дней_просрочки}</td>
+                <td className="px-2 py-1.5 text-right num">{fmtShort(r.стоимость_просрочки)}</td>
+                <td className="px-2 py-1.5">{r.статус_оплаты || "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}
+
+function IssueList({ items, tone, empty }: { items: Issue[]; tone: "destructive" | "warning"; empty: string }) {
+  if (items.length === 0) {
+    return <div className="text-[12px] text-muted-foreground px-3 py-2">{empty}</div>;
+  }
+  const border = tone === "destructive" ? "border-destructive/20" : "border-warning/20";
+  const accent = tone === "destructive" ? "text-destructive" : "text-warning";
+  return (
+    <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
+      {items.map((it, i) => (
+        <div key={i} className={cn("rounded-md border bg-card px-3 py-2 text-[12px]", border)}>
+          <div className="flex items-center justify-between gap-2">
+            <div className={cn("font-medium", accent)}>Строка {it.row}</div>
+            <Badge className="border-border text-muted-foreground font-mono">{it.field}</Badge>
+          </div>
+          <div className="mt-1 text-foreground/90">Проблема: {it.problem}</div>
+          <div className="text-muted-foreground">Рекомендация: {it.hint}</div>
+        </div>
+      ))}
+    </div>
   );
 }
