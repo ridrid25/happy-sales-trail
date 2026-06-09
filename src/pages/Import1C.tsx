@@ -205,10 +205,10 @@ export default function Import1C() {
     }
   }
 
-  function openEditor(rowNum: number) {
+  function openEditor(rowNum: number, focusField?: string) {
     if (!result) return;
     const r = result.rows.find((x) => x.rowNum === rowNum);
-    if (r) setEditingRow({ ...r });
+    if (r) setEditing({ rowNum, focusField });
   }
 
   function saveEditedRow(edited: ReceivableRow) {
