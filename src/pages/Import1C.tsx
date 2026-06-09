@@ -503,8 +503,24 @@ export default function Import1C() {
         </div>
       )}
 
+      {/* Mobile: toggle for technical blocks */}
+      {isMobile && (
+        <button
+          onClick={() => setShowTechMobile(s => !s)}
+          className="w-full mt-4 flex items-center justify-between gap-2 px-3 py-2.5 rounded-md border border-border bg-card text-[13px] font-medium hover:bg-muted/40"
+        >
+          <span className="inline-flex items-center gap-2">
+            <Info className="h-4 w-4 text-muted-foreground" />
+            Технические блоки · типы файлов, сопоставление, история, безопасность
+          </span>
+          <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform shrink-0", showTechMobile && "rotate-180")} />
+        </button>
+      )}
+
+      <div className={cn(isMobile && !showTechMobile && "hidden")}>
       {/* Supported file types */}
       <div className="mt-4">
+
         <Card title="Поддерживаемые типы файлов" subtitle="MVP: реально работает только «Дебиторка» (CSV/JSON). Остальные — демо-шаблоны.">
           <div className="space-y-2">
             {fileTypes.map((ft) => {
