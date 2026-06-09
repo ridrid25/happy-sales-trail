@@ -46,8 +46,9 @@ export default function Dashboard() {
     <>
       <PageHeader
         title="Управленческий дашборд"
-        subtitle="Качество продаж = выручка × маржа × оплаты. Май 2026"
+        subtitle={isMobile ? "Май 2026 · Выручка × маржа × оплаты" : "Качество продаж = выручка × маржа × оплаты. Май 2026"}
       />
+
 
       {/* Управленческий вывод */}
       <Card className="mb-4 border-l-4 border-l-warning bg-warning/[0.03] dark:bg-warning/[0.06] dark:border-warning/30 dark:shadow-elevated">
