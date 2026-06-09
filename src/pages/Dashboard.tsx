@@ -4,11 +4,11 @@ import {
   managers, redFlags, monthPlan, monthFact, monthForecast, planMargin, factMargin,
   planPayments, factPayments, totalReceivable, overdueReceivable, avgPaymentDays,
   forecastIncoming, deals, formatShort, riskColor, cashGap, avgQualityIndex,
-  totalHoldingCost, avgOverdueDays, FINANCING_RATE
+  totalHoldingCost, avgOverdueDays, FINANCING_RATE, priorityActions,
 } from "@/data/demo";
 import { Card, PageHeader, Stat, Badge, ProgressBar } from "@/components/ui-bits";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { AlertTriangle, TrendingUp, Wallet, Target, ShieldAlert, ArrowRight, ArrowRightCircle, ChevronDown } from "lucide-react";
+import { AlertTriangle, TrendingUp, Wallet, Target, ShieldAlert, ArrowRight, ArrowRightCircle, ChevronDown, ListChecks } from "lucide-react";
 import { RiskBlock } from "@/components/RiskBlock";
 import {
   BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid
