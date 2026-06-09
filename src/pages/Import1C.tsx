@@ -781,7 +781,7 @@ function EditRowDialog({
   const [draft, setDraft] = useState<ReceivableRow | null>(null);
 
   // Sync draft when row changes
-  useMemo(() => { setDraft(row ? { ...row } : null); }, [row]);
+  useEffect(() => { setDraft(row ? { ...row } : null); }, [row]);
 
   if (!row || !draft) {
     return (
