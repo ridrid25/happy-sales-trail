@@ -47,10 +47,10 @@ type QuickTab =
   | { kind: "menu"; label: string };
 
 const quickTabs: QuickTab[] = [
-  { kind: "scroll", id: "dashboard", label: "Дашборд" },
+  { kind: "scroll", id: "dashboard", label: "Обзор" },
   { kind: "scroll", id: "money", label: "Деньги", section: "section-money" },
   { kind: "scroll", id: "risks", label: "Риски", section: "section-risks" },
-  { kind: "scroll", id: "actions", label: "Действия", section: "section-actions" },
+  { kind: "scroll", id: "actions", label: "Дела", section: "section-actions" },
   { kind: "menu", label: "Меню" },
 ];
 
