@@ -88,7 +88,35 @@ export default function AppLayout() {
         </div>
       </header>
 
+      {/* Mobile quick-tabs strip */}
+      <div className="lg:hidden sticky top-16 z-30 bg-background/95 backdrop-blur border-b border-border">
+        <div className="flex items-center gap-1 px-2 py-1.5 overflow-x-auto scrollbar-thin">
+          {quickTabs.map((t) => (
+            <NavLink
+              key={t.to}
+              to={t.to}
+              end={t.end}
+              className={({ isActive }) => cn(
+                "px-3 py-1.5 rounded-full text-[12px] font-medium whitespace-nowrap shrink-0 transition-colors",
+                isActive
+                  ? "bg-accent text-accent-foreground"
+                  : "bg-muted/60 text-foreground/80 hover:bg-muted"
+              )}
+            >
+              {t.label}
+            </NavLink>
+          ))}
+          <button
+            onClick={() => setOpen(true)}
+            className="px-3 py-1.5 rounded-full text-[12px] font-medium whitespace-nowrap shrink-0 bg-muted/60 text-foreground/80 hover:bg-muted inline-flex items-center gap-1"
+          >
+            <Menu className="h-3.5 w-3.5" /> Меню
+          </button>
+        </div>
+      </div>
+
       <div className="flex">
+
         {/* Sidebar desktop */}
         <aside className="hidden lg:flex flex-col w-60 shrink-0 bg-sidebar text-sidebar-foreground border-r border-sidebar-border min-h-[calc(100vh-4rem)] sticky top-16">
           <nav className="p-3 space-y-0.5 flex-1">
