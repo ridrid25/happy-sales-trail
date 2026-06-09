@@ -3,13 +3,19 @@ import { PageHeader, Card, Stat, Badge, ProgressBar } from "@/components/ui-bits
 import {
   Upload, FileDown, ShieldCheck, FileSpreadsheet, FileJson, FileText,
   CheckCircle2, AlertTriangle, XCircle, ChevronDown, ChevronRight,
-  Database, ArrowRight, History, Info, Sparkles,
+  Database, ArrowRight, History, Info, Sparkles, Wrench,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   ALL_FIELDS, REQUIRED_FIELDS, buildTemplateCSV, parseFile,
-  validateRecords, summarize, type ParseResult, type Issue, type ReceivableRow,
+  validateRecords, revalidate, summarize, type ParseResult, type Issue, type ReceivableRow,
 } from "@/lib/receivablesImport";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 
 type FileType = "sales" | "payments" | "receivables" | "clients" | "managers";
 
