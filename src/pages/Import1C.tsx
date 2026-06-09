@@ -229,7 +229,9 @@ export default function Import1C() {
       const without = log.filter((e) => e.row !== edited.rowNum);
       return [{ row: edited.rowNum, fields: changed }, ...without];
     });
-    setEditingRow(null);
+    const remaining = next.errors.filter((e) => e.row === edited.rowNum).length;
+    if (remaining === 0) setEditing(null);
+    else setEditing({ rowNum: edited.rowNum });
   }
 
 
