@@ -45,7 +45,7 @@ export function PageHeader({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div className="min-w-0">
           <h1 className="font-display text-xl sm:text-2xl lg:text-3xl font-semibold leading-tight">{title}</h1>
-          {subtitle && <p className="text-[13px] sm:text-sm text-muted-foreground mt-1">{subtitle}</p>}
+          {subtitle && <p className="text-[12px] sm:text-sm text-muted-foreground mt-1 truncate sm:whitespace-normal">{subtitle}</p>}
         </div>
         {actions && <div className="sm:shrink-0">{actions}</div>}
       </div>
