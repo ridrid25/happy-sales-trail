@@ -655,7 +655,10 @@ export default function Import1C() {
 
       <EditRowDialog
         row={editingRow}
-        onCancel={() => setEditingRow(null)}
+        focusField={editing?.focusField}
+        errors={result?.errors.filter((e) => editingRow && e.row === editingRow.rowNum) ?? []}
+        warnings={result?.warnings.filter((w) => editingRow && w.row === editingRow.rowNum) ?? []}
+        onCancel={() => setEditing(null)}
         onSave={saveEditedRow}
       />
     </>
