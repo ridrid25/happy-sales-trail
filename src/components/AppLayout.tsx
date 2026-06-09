@@ -119,29 +119,45 @@ export default function AppLayout() {
       {/* Mobile quick-tabs strip */}
       <div className="lg:hidden sticky top-16 z-30 bg-background/95 backdrop-blur border-b border-border">
         <div className="flex items-center gap-1 px-2 py-1.5 overflow-x-auto scrollbar-thin">
-          {quickTabs.map((t) => (
-            <NavLink
-              key={t.to}
-              to={t.to}
-              end={t.end}
-              className={({ isActive }) => cn(
-                "px-3 py-1.5 rounded-full text-[12px] font-medium whitespace-nowrap shrink-0 transition-colors",
-                isActive
-                  ? "bg-accent text-accent-foreground"
-                  : "bg-muted/60 text-foreground/80 hover:bg-muted"
-              )}
-            >
-              {t.label}
-            </NavLink>
-          ))}
-          <button
-            onClick={() => setOpen(true)}
-            className="px-3 py-1.5 rounded-full text-[12px] font-medium whitespace-nowrap shrink-0 bg-muted/60 text-foreground/80 hover:bg-muted inline-flex items-center gap-1"
-          >
-            <Menu className="h-3.5 w-3.5" /> Меню
-          </button>
+          {quickTabs.map((t) => {
+            const onDashboard = location.pathname === "/";
+            const handleClick = () => {
+              if (t.kind === "menu") {
+                setOpen(true);
+                return;
+              }
+              const scrollTo = () => {
+                if (!t.section) {
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                  return;
+                }
+                const el = document.getElementById(t.section);
+                if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+              };
+              if (!onDashboard) {
+                navigate("/");
+                setTimeout(scrollTo, 80);
+              } else {
+                scrollTo();
+              }
+            };
+            return (
+              <button
+                key={t.label}
+                onClick={handleClick}
+                className={cn(
+                  "px-3 py-1.5 rounded-full text-[12px] font-medium whitespace-nowrap shrink-0 transition-colors inline-flex items-center gap-1",
+                  "bg-muted/60 text-foreground/80 hover:bg-muted"
+                )}
+              >
+                {t.kind === "menu" && <Menu className="h-3.5 w-3.5" />}
+                {t.label}
+              </button>
+            );
+          })}
         </div>
       </div>
+
 
       <div className="flex">
 
