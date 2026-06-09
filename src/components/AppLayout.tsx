@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useState } from "react";
 import {
   LayoutDashboard, Users, Briefcase, GitBranch, Wallet, Building2,
@@ -42,16 +42,13 @@ const navGroups: { title: string; items: { to: string; label: string; icon: any;
 
 const nav = navGroups.flatMap((g) => g.items);
 
-type QuickTab =
-  | { kind: "scroll"; id: string; label: string; section?: string }
-  | { kind: "menu"; label: string };
+type QuickTab = { id: string; label: string; section: string };
 
 const quickTabs: QuickTab[] = [
-  { kind: "scroll", id: "dashboard", label: "Обзор" },
-  { kind: "scroll", id: "money", label: "Деньги", section: "section-money" },
-  { kind: "scroll", id: "risks", label: "Риски", section: "section-risks" },
-  { kind: "scroll", id: "actions", label: "Дела", section: "section-actions" },
-  { kind: "menu", label: "Меню" },
+  { id: "status", label: "Статус", section: "section-status" },
+  { id: "money", label: "Деньги", section: "section-money" },
+  { id: "actions", label: "Действия", section: "section-actions" },
+  { id: "risks", label: "Риски", section: "section-risks" },
 ];
 
 
@@ -61,7 +58,7 @@ export default function AppLayout() {
   const [open, setOpen] = useState(false);
   const [role, setRole] = useState("Собственник");
   const location = useLocation();
-  const navigate = useNavigate();
+  
 
   const { theme, toggle } = useTheme();
 
@@ -118,47 +115,31 @@ export default function AppLayout() {
         </div>
       </header>
 
-      {/* Mobile quick-tabs strip */}
-      <div className="lg:hidden sticky top-16 z-30 bg-background/95 backdrop-blur border-b border-border">
-        <div className="flex items-center gap-1 px-3 py-1.5 overflow-x-auto scrollbar-thin [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {quickTabs.map((t) => {
-            const onDashboard = location.pathname === "/";
-            const handleClick = () => {
-              if (t.kind === "menu") {
-                setOpen(true);
-                return;
-              }
-              const scrollTo = () => {
-                if (!t.section) {
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                  return;
-                }
+      {/* Mobile quick-tabs strip — только на главном дашборде */}
+      {location.pathname === "/" && (
+        <div className="lg:hidden sticky top-16 z-30 bg-background/95 backdrop-blur border-b border-border">
+          <div className="flex items-center gap-1 px-3 py-1.5 overflow-x-auto scrollbar-thin [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {quickTabs.map((t) => {
+              const handleClick = () => {
                 const el = document.getElementById(t.section);
                 if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
               };
-              if (!onDashboard) {
-                navigate("/");
-                setTimeout(scrollTo, 80);
-              } else {
-                scrollTo();
-              }
-            };
-            return (
-              <button
-                key={t.label}
-                onClick={handleClick}
-                className={cn(
-                  "px-3 py-1.5 rounded-full text-[12px] font-medium whitespace-nowrap shrink-0 transition-colors inline-flex items-center gap-1",
-                  "bg-muted/60 text-foreground/80 hover:bg-muted"
-                )}
-              >
-                {t.kind === "menu" && <Menu className="h-3.5 w-3.5" />}
-                {t.label}
-              </button>
-            );
-          })}
+              return (
+                <button
+                  key={t.id}
+                  onClick={handleClick}
+                  className={cn(
+                    "px-3 py-1.5 rounded-full text-[12px] font-medium whitespace-nowrap shrink-0 transition-colors",
+                    "bg-muted/60 text-foreground/80 hover:bg-muted"
+                  )}
+                >
+                  {t.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
 
       <div className="flex">
