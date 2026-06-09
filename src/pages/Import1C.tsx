@@ -1,15 +1,21 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { PageHeader, Card, Stat, Badge, ProgressBar } from "@/components/ui-bits";
 import {
   Upload, FileDown, ShieldCheck, FileSpreadsheet, FileJson, FileText,
   CheckCircle2, AlertTriangle, XCircle, ChevronDown, ChevronRight,
-  Database, ArrowRight, History, Info, Sparkles,
+  Database, ArrowRight, History, Info, Sparkles, Wrench,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   ALL_FIELDS, REQUIRED_FIELDS, buildTemplateCSV, parseFile,
-  validateRecords, summarize, type ParseResult, type Issue, type ReceivableRow,
+  validateRecords, revalidate, summarize, type ParseResult, type Issue, type ReceivableRow,
 } from "@/lib/receivablesImport";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 
 type FileType = "sales" | "payments" | "receivables" | "clients" | "managers";
 
@@ -152,6 +158,11 @@ export default function Import1C() {
   const [applied, setApplied] = useState<AppliedSummary | null>(null);
   const [history, setHistory] = useState(initialHistory);
 
+  // Inline-fix state (session-only)
+  const [fixedRows, setFixedRows] = useState<Set<number>>(new Set());
+  const [fixLog, setFixLog] = useState<{ row: number; fields: string[] }[]>([]);
+  const [editingRow, setEditingRow] = useState<ReceivableRow | null>(null);
+
   const summary = useMemo(() => (result ? summarize(result) : null), [result]);
   const quality = useMemo(() => {
     if (!result || result.rows.length === 0) return 0;
@@ -179,6 +190,8 @@ export default function Import1C() {
       const validated = validateRecords(records);
       setFileInfo({ name: file.name, format });
       setResult(validated);
+      setFixedRows(new Set());
+      setFixLog([]);
       setPreviewErrOpen(true);
       setPreviewWarnOpen(false);
     } catch (e) {
@@ -187,6 +200,34 @@ export default function Import1C() {
       console.error(e);
     }
   }
+
+  function openEditor(rowNum: number) {
+    if (!result) return;
+    const r = result.rows.find((x) => x.rowNum === rowNum);
+    if (r) setEditingRow({ ...r });
+  }
+
+  function saveEditedRow(edited: ReceivableRow) {
+    if (!result) return;
+    const before = result.rows.find((x) => x.rowNum === edited.rowNum);
+    const changed: string[] = [];
+    if (before) {
+      (Object.keys(edited) as (keyof ReceivableRow)[]).forEach((k) => {
+        if (k === "rowNum" || k === "стоимость_просрочки") return;
+        if (String(before[k] ?? "") !== String(edited[k] ?? "")) changed.push(String(k));
+      });
+    }
+    const nextRows = result.rows.map((r) => (r.rowNum === edited.rowNum ? edited : r));
+    const next = revalidate(nextRows);
+    setResult(next);
+    setFixedRows((s) => new Set(s).add(edited.rowNum));
+    setFixLog((log) => {
+      const without = log.filter((e) => e.row !== edited.rowNum);
+      return [{ row: edited.rowNum, fields: changed }, ...without];
+    });
+    setEditingRow(null);
+  }
+
 
   function handleApply() {
     if (!result || !fileInfo || !summary) return;
@@ -227,19 +268,22 @@ export default function Import1C() {
         title="Импорт из 1С"
         subtitle="Ручной импорт из выгрузки 1С · файл обрабатывается локально в браузере · прямого подключения к базе 1С нет"
         actions={
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium bg-accent text-accent-foreground hover:opacity-90"
-            >
-              <Upload className="h-4 w-4" /> Загрузить файл дебиторки
-            </button>
-            <button
-              onClick={handleDownloadTemplate}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium border border-border hover:bg-muted"
-            >
-              <FileDown className="h-4 w-4" /> Скачать шаблон дебиторки
-            </button>
+          <div className="flex flex-col items-start gap-1.5">
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium bg-accent text-accent-foreground hover:opacity-90"
+              >
+                <Upload className="h-4 w-4" /> Загрузить файл дебиторки
+              </button>
+              <button
+                onClick={handleDownloadTemplate}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium border border-border hover:bg-muted"
+              >
+                <FileDown className="h-4 w-4" /> Скачать шаблон дебиторки
+              </button>
+            </div>
+            <div className="text-[11px] text-muted-foreground">Шаблон сохранён в UTF-8 и корректно открывается в Excel.</div>
           </div>
         }
       />
@@ -319,21 +363,45 @@ export default function Import1C() {
             </div>
 
             <div className="mb-2 text-[11px] uppercase text-muted-foreground">Первые 5 строк</div>
-            <RowsPreview rows={result.rows.slice(0, 5)} />
+            <RowsPreview rows={result.rows.slice(0, 5)} fixedRows={fixedRows} />
+
+            {fixedRows.size > 0 && (
+              <div className="mt-3 rounded-md border border-success/30 bg-success/5 px-3 py-2 text-[12px]">
+                <div className="font-medium text-success mb-1 flex items-center gap-1.5">
+                  <Wrench className="h-3.5 w-3.5" /> Исправлено строк: {fixedRows.size}
+                </div>
+                <ul className="space-y-0.5 text-foreground/85">
+                  {fixLog.slice(0, 6).map((e) => (
+                    <li key={e.row}>
+                      Строка {e.row}: {e.fields.length ? `поля ${e.fields.join(", ")} исправлены пользователем` : "строка отредактирована пользователем"}.
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-1 text-[11px] text-muted-foreground">
+                  Исправления применяются только к импортируемому файлу в этом приложении. Данные в 1С не изменяются.
+                </div>
+              </div>
+            )}
 
             <div className="mt-4 space-y-2">
               <button onClick={() => setPreviewErrOpen(!previewErrOpen)} className="w-full flex items-center justify-between px-3 py-2 rounded-md border border-destructive/30 bg-destructive/5 hover:bg-destructive/10">
                 <span className="flex items-center gap-2 text-sm font-medium text-destructive"><XCircle className="h-4 w-4" /> Критичные ошибки · {result.errors.length}</span>
                 {previewErrOpen ? <ChevronDown className="h-4 w-4 text-destructive" /> : <ChevronRight className="h-4 w-4 text-destructive" />}
               </button>
-              {previewErrOpen && <IssueList items={result.errors} tone="destructive" empty="Критичных ошибок нет." />}
+              {previewErrOpen && <IssueList items={result.errors} tone="destructive" empty="Критичных ошибок нет." onFix={openEditor} />}
 
               <button onClick={() => setPreviewWarnOpen(!previewWarnOpen)} className="w-full flex items-center justify-between px-3 py-2 rounded-md border border-warning/30 bg-warning/5 hover:bg-warning/10">
                 <span className="flex items-center gap-2 text-sm font-medium text-warning"><AlertTriangle className="h-4 w-4" /> Предупреждения · {result.warnings.length}</span>
                 {previewWarnOpen ? <ChevronDown className="h-4 w-4 text-warning" /> : <ChevronRight className="h-4 w-4 text-warning" />}
               </button>
-              {previewWarnOpen && <IssueList items={result.warnings} tone="warning" empty="Предупреждений нет." />}
+              {previewWarnOpen && <IssueList items={result.warnings} tone="warning" empty="Предупреждений нет." onFix={openEditor} />}
             </div>
+
+            <div className="mt-3 text-[11px] text-muted-foreground flex items-start gap-1.5">
+              <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+              <span>Исправления доступны только до обновления страницы. Для постоянного исправления внесите изменения в исходную выгрузку 1С.</span>
+            </div>
+
 
             <div className="mt-4 grid sm:grid-cols-2 gap-3 items-center">
               <div className="text-[12px] text-muted-foreground">
@@ -578,16 +646,25 @@ export default function Import1C() {
           </div>
         </Card>
       </div>
+
+      <EditRowDialog
+        row={editingRow}
+        onCancel={() => setEditingRow(null)}
+        onSave={saveEditedRow}
+      />
     </>
   );
 }
 
 // ====== Sub-components ======
 
-function RowsPreview({ rows }: { rows: ReceivableRow[] }) {
+function RowsPreview({ rows, fixedRows }: { rows: ReceivableRow[]; fixedRows: Set<number> }) {
   if (rows.length === 0) {
     return <div className="text-[12px] text-muted-foreground px-3 py-4 rounded-md border border-dashed border-border">В файле нет строк данных.</div>;
   }
+  const fixedBadge = (
+    <Badge className="bg-success/15 text-success border-success/30"><Wrench className="h-3 w-3" /> исправлено</Badge>
+  );
   return (
     <>
       {/* Mobile: compact cards */}
@@ -596,7 +673,10 @@ function RowsPreview({ rows }: { rows: ReceivableRow[] }) {
           <div key={`${r.rowNum}-${r.receivable_id}`} className="rounded-md border border-border bg-card px-3 py-2 text-[12px]">
             <div className="flex items-center justify-between gap-2 mb-1">
               <div className="font-medium truncate">{r.клиент || <span className="text-muted-foreground">— клиент —</span>}</div>
-              <Badge className="border-border text-muted-foreground">#{r.rowNum}</Badge>
+              <div className="flex items-center gap-1.5 shrink-0">
+                {fixedRows.has(r.rowNum) && fixedBadge}
+                <Badge className="border-border text-muted-foreground">#{r.rowNum}</Badge>
+              </div>
             </div>
             <div className="text-muted-foreground">{r.менеджер || "— менеджер —"} · ИНН {r.инн || "—"}</div>
             <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 mt-1">
@@ -623,11 +703,12 @@ function RowsPreview({ rows }: { rows: ReceivableRow[] }) {
               <th className="text-right px-2 py-1.5">Дней</th>
               <th className="text-right px-2 py-1.5">Стоимость</th>
               <th className="text-left px-2 py-1.5">Статус</th>
+              <th className="text-left px-2 py-1.5"></th>
             </tr>
           </thead>
           <tbody>
             {rows.map((r) => (
-              <tr key={`${r.rowNum}-${r.receivable_id}`} className="border-t border-border">
+              <tr key={`${r.rowNum}-${r.receivable_id}`} className={cn("border-t border-border", fixedRows.has(r.rowNum) && "bg-success/5")}>
                 <td className="px-2 py-1.5 text-muted-foreground">{r.rowNum}</td>
                 <td className="px-2 py-1.5 truncate max-w-[180px]">{r.клиент || "—"}</td>
                 <td className="px-2 py-1.5 truncate max-w-[150px]">{r.менеджер || "—"}</td>
@@ -636,6 +717,7 @@ function RowsPreview({ rows }: { rows: ReceivableRow[] }) {
                 <td className="px-2 py-1.5 text-right num">{r.дней_просрочки}</td>
                 <td className="px-2 py-1.5 text-right num">{fmtShort(r.стоимость_просрочки)}</td>
                 <td className="px-2 py-1.5">{r.статус_оплаты || "—"}</td>
+                <td className="px-2 py-1.5">{fixedRows.has(r.rowNum) && fixedBadge}</td>
               </tr>
             ))}
           </tbody>
@@ -645,7 +727,7 @@ function RowsPreview({ rows }: { rows: ReceivableRow[] }) {
   );
 }
 
-function IssueList({ items, tone, empty }: { items: Issue[]; tone: "destructive" | "warning"; empty: string }) {
+function IssueList({ items, tone, empty, onFix }: { items: Issue[]; tone: "destructive" | "warning"; empty: string; onFix?: (rowNum: number) => void }) {
   if (items.length === 0) {
     return <div className="text-[12px] text-muted-foreground px-3 py-2">{empty}</div>;
   }
@@ -655,14 +737,144 @@ function IssueList({ items, tone, empty }: { items: Issue[]; tone: "destructive"
     <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
       {items.map((it, i) => (
         <div key={i} className={cn("rounded-md border bg-card px-3 py-2 text-[12px]", border)}>
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
             <div className={cn("font-medium", accent)}>Строка {it.row}</div>
             <Badge className="border-border text-muted-foreground font-mono">{it.field}</Badge>
           </div>
           <div className="mt-1 text-foreground/90">Проблема: {it.problem}</div>
           <div className="text-muted-foreground">Рекомендация: {it.hint}</div>
+          {onFix && (
+            <div className="mt-2 flex justify-end">
+              <button
+                onClick={() => onFix(it.row)}
+                className="inline-flex items-center gap-1 text-[12px] px-2 py-1 rounded-md border border-border bg-card hover:bg-muted"
+              >
+                <Wrench className="h-3.5 w-3.5" /> Исправить
+              </button>
+            </div>
+          )}
         </div>
       ))}
     </div>
   );
 }
+
+const STATUS_OPTIONS = ["оплачено", "частично", "ожидает", "просрочено", "проблемная"] as const;
+
+// dd.mm.yyyy <-> yyyy-mm-dd for native <input type="date">
+function toIsoDate(s: string): string {
+  if (!s) return "";
+  const m = s.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+  if (m) return `${m[3]}-${m[2]}-${m[1]}`;
+  const m2 = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m2 ? s : "";
+}
+function fromIsoDate(s: string): string {
+  if (!s) return "";
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? `${m[3]}.${m[2]}.${m[1]}` : s;
+}
+
+function EditRowDialog({
+  row, onCancel, onSave,
+}: { row: ReceivableRow | null; onCancel: () => void; onSave: (r: ReceivableRow) => void }) {
+  const [draft, setDraft] = useState<ReceivableRow | null>(null);
+
+  // Sync draft when row changes
+  useEffect(() => { setDraft(row ? { ...row } : null); }, [row]);
+
+  if (!row || !draft) {
+    return (
+      <Dialog open={false} onOpenChange={(o) => { if (!o) onCancel(); }}>
+        <DialogContent />
+      </Dialog>
+    );
+  }
+
+  const set = <K extends keyof ReceivableRow>(k: K, v: ReceivableRow[K]) =>
+    setDraft((d) => (d ? { ...d, [k]: v } : d));
+
+  return (
+    <Dialog open={!!row} onOpenChange={(o) => { if (!o) onCancel(); }}>
+      <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Редактирование строки импорта · #{draft.rowNum}</DialogTitle>
+          <DialogDescription>
+            Исправления применяются только к импортируемому файлу в этом приложении. Данные в 1С не изменяются.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label>receivable_id</Label>
+            <Input value={draft.receivable_id} onChange={(e) => set("receivable_id", e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Клиент</Label>
+            <Input value={draft.клиент} onChange={(e) => set("клиент", e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>ИНН</Label>
+            <Input value={draft.инн} onChange={(e) => set("инн", e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Договор</Label>
+            <Input value={draft.договор} onChange={(e) => set("договор", e.target.value)} />
+          </div>
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label>Менеджер</Label>
+            <Input value={draft.менеджер} onChange={(e) => set("менеджер", e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Сумма долга, ₽</Label>
+            <Input type="number" inputMode="decimal" value={Number.isFinite(draft.сумма_долга) ? draft.сумма_долга : 0}
+              onChange={(e) => set("сумма_долга", Number(e.target.value) || 0)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Сумма просрочки, ₽</Label>
+            <Input type="number" inputMode="decimal" value={Number.isFinite(draft.сумма_просрочки) ? draft.сумма_просрочки : 0}
+              onChange={(e) => set("сумма_просрочки", Number(e.target.value) || 0)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Дата возникновения</Label>
+            <Input type="date" value={toIsoDate(draft.дата_возникновения)}
+              onChange={(e) => set("дата_возникновения", fromIsoDate(e.target.value))} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Дата плановой оплаты</Label>
+            <Input type="date" value={toIsoDate(draft.дата_плановой_оплаты)}
+              onChange={(e) => set("дата_плановой_оплаты", fromIsoDate(e.target.value))} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Дней просрочки</Label>
+            <Input type="number" inputMode="numeric" value={Number.isFinite(draft.дней_просрочки) ? draft.дней_просрочки : 0}
+              onChange={(e) => set("дней_просрочки", Number(e.target.value) || 0)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Статус оплаты</Label>
+            <select
+              value={draft.статус_оплаты}
+              onChange={(e) => set("статус_оплаты", e.target.value)}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            >
+              <option value="">— выберите —</option>
+              {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label>Комментарий</Label>
+            <Input value={draft.комментарий} onChange={(e) => set("комментарий", e.target.value)} />
+          </div>
+        </div>
+
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={onCancel}>Отмена</Button>
+          <Button onClick={() => onSave(draft)}>
+            <Wrench className="h-4 w-4" /> Сохранить и проверить
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
