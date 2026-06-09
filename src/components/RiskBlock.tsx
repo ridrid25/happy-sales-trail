@@ -53,13 +53,11 @@ function MainRiskCard() {
         <div className="text-[13px] font-semibold">Кассовый разрыв</div>
         <div className="num font-display font-bold text-lg text-destructive">−{formatShort(cashGap)} ₽</div>
       </div>
-      <div className="text-[11.5px] mt-1.5">
-        <span className="text-muted-foreground">Почему: </span>
-        просрочка 3 млн ₽ + неоплачено 7,2 млн ₽
-      </div>
-      <div className="flex items-start gap-1.5 text-[11.5px] mt-1 pt-1.5 border-t border-destructive/20">
-        <ArrowRightCircle className="h-3.5 w-3.5 text-accent shrink-0 mt-0.5" />
-        <span><span className="text-muted-foreground">Что сделать: </span>разобрать 3 крупнейших долга сегодня</span>
+      <div className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-0.5 text-[11.5px] mt-1.5 pt-1.5 border-t border-destructive/20">
+        <span className="text-muted-foreground">Дебиторка:</span>
+        <span className="num font-medium">7,2 млн ₽</span>
+        <span className="text-muted-foreground">Просрочено из неё:</span>
+        <span className="num font-medium text-destructive">3,0 млн ₽</span>
       </div>
     </div>
   );
