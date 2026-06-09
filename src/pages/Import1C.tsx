@@ -158,6 +158,11 @@ export default function Import1C() {
   const [applied, setApplied] = useState<AppliedSummary | null>(null);
   const [history, setHistory] = useState(initialHistory);
 
+  // Inline-fix state (session-only)
+  const [fixedRows, setFixedRows] = useState<Set<number>>(new Set());
+  const [fixLog, setFixLog] = useState<{ row: number; fields: string[] }[]>([]);
+  const [editingRow, setEditingRow] = useState<ReceivableRow | null>(null);
+
   const summary = useMemo(() => (result ? summarize(result) : null), [result]);
   const quality = useMemo(() => {
     if (!result || result.rows.length === 0) return 0;
@@ -185,6 +190,8 @@ export default function Import1C() {
       const validated = validateRecords(records);
       setFileInfo({ name: file.name, format });
       setResult(validated);
+      setFixedRows(new Set());
+      setFixLog([]);
       setPreviewErrOpen(true);
       setPreviewWarnOpen(false);
     } catch (e) {
@@ -193,6 +200,34 @@ export default function Import1C() {
       console.error(e);
     }
   }
+
+  function openEditor(rowNum: number) {
+    if (!result) return;
+    const r = result.rows.find((x) => x.rowNum === rowNum);
+    if (r) setEditingRow({ ...r });
+  }
+
+  function saveEditedRow(edited: ReceivableRow) {
+    if (!result) return;
+    const before = result.rows.find((x) => x.rowNum === edited.rowNum);
+    const changed: string[] = [];
+    if (before) {
+      (Object.keys(edited) as (keyof ReceivableRow)[]).forEach((k) => {
+        if (k === "rowNum" || k === "стоимость_просрочки") return;
+        if (String(before[k] ?? "") !== String(edited[k] ?? "")) changed.push(String(k));
+      });
+    }
+    const nextRows = result.rows.map((r) => (r.rowNum === edited.rowNum ? edited : r));
+    const next = revalidate(nextRows);
+    setResult(next);
+    setFixedRows((s) => new Set(s).add(edited.rowNum));
+    setFixLog((log) => {
+      const without = log.filter((e) => e.row !== edited.rowNum);
+      return [{ row: edited.rowNum, fields: changed }, ...without];
+    });
+    setEditingRow(null);
+  }
+
 
   function handleApply() {
     if (!result || !fileInfo || !summary) return;
