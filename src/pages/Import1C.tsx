@@ -315,6 +315,17 @@ export default function Import1C() {
         </div>
       )}
 
+      {/* 4-step stepper */}
+      <ImportStepper
+        loaded={!!result}
+        checked={!!result}
+        fixed={!!result && result.errors.length === 0}
+        applied={!!applied}
+        onUpload={() => fileInputRef.current?.click()}
+      />
+
+
+
       {/* Last import summary */}
       <Card
         title="Последний импорт"
