@@ -102,6 +102,8 @@ function MobileView({ paidPct, unpaidPct }: { paidPct: number; unpaidPct: number
           <MoneyRow label="Кассовый разрыв" value={"−" + formatShort(cashGap) + " ₽"} tone="danger" hint="к концу месяца" />
         </div>
       </Card>
+      </div>
+
 
       {/* 2. Что сделать сегодня */}
       <div id="section-actions" className="scroll-mt-32">
