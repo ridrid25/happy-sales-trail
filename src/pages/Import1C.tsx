@@ -363,21 +363,45 @@ export default function Import1C() {
             </div>
 
             <div className="mb-2 text-[11px] uppercase text-muted-foreground">Первые 5 строк</div>
-            <RowsPreview rows={result.rows.slice(0, 5)} />
+            <RowsPreview rows={result.rows.slice(0, 5)} fixedRows={fixedRows} />
+
+            {fixedRows.size > 0 && (
+              <div className="mt-3 rounded-md border border-success/30 bg-success/5 px-3 py-2 text-[12px]">
+                <div className="font-medium text-success mb-1 flex items-center gap-1.5">
+                  <Wrench className="h-3.5 w-3.5" /> Исправлено строк: {fixedRows.size}
+                </div>
+                <ul className="space-y-0.5 text-foreground/85">
+                  {fixLog.slice(0, 6).map((e) => (
+                    <li key={e.row}>
+                      Строка {e.row}: {e.fields.length ? `поля ${e.fields.join(", ")} исправлены пользователем` : "строка отредактирована пользователем"}.
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-1 text-[11px] text-muted-foreground">
+                  Исправления применяются только к импортируемому файлу в этом приложении. Данные в 1С не изменяются.
+                </div>
+              </div>
+            )}
 
             <div className="mt-4 space-y-2">
               <button onClick={() => setPreviewErrOpen(!previewErrOpen)} className="w-full flex items-center justify-between px-3 py-2 rounded-md border border-destructive/30 bg-destructive/5 hover:bg-destructive/10">
                 <span className="flex items-center gap-2 text-sm font-medium text-destructive"><XCircle className="h-4 w-4" /> Критичные ошибки · {result.errors.length}</span>
                 {previewErrOpen ? <ChevronDown className="h-4 w-4 text-destructive" /> : <ChevronRight className="h-4 w-4 text-destructive" />}
               </button>
-              {previewErrOpen && <IssueList items={result.errors} tone="destructive" empty="Критичных ошибок нет." />}
+              {previewErrOpen && <IssueList items={result.errors} tone="destructive" empty="Критичных ошибок нет." onFix={openEditor} />}
 
               <button onClick={() => setPreviewWarnOpen(!previewWarnOpen)} className="w-full flex items-center justify-between px-3 py-2 rounded-md border border-warning/30 bg-warning/5 hover:bg-warning/10">
                 <span className="flex items-center gap-2 text-sm font-medium text-warning"><AlertTriangle className="h-4 w-4" /> Предупреждения · {result.warnings.length}</span>
                 {previewWarnOpen ? <ChevronDown className="h-4 w-4 text-warning" /> : <ChevronRight className="h-4 w-4 text-warning" />}
               </button>
-              {previewWarnOpen && <IssueList items={result.warnings} tone="warning" empty="Предупреждений нет." />}
+              {previewWarnOpen && <IssueList items={result.warnings} tone="warning" empty="Предупреждений нет." onFix={openEditor} />}
             </div>
+
+            <div className="mt-3 text-[11px] text-muted-foreground flex items-start gap-1.5">
+              <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+              <span>Исправления доступны только до обновления страницы. Для постоянного исправления внесите изменения в исходную выгрузку 1С.</span>
+            </div>
+
 
             <div className="mt-4 grid sm:grid-cols-2 gap-3 items-center">
               <div className="text-[12px] text-muted-foreground">
