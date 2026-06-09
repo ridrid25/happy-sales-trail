@@ -24,54 +24,128 @@ const sevBadge = (s: RiskSeverity) =>
   : "bg-accent/10 text-accent border-accent/30";
 const sevLabel = (s: RiskSeverity) => s === "critical" ? "критично" : s === "control" ? "контроль" : "наблюдение";
 
-/* ============ Block: Сводка (counters) ============ */
-function CountersGrid({ onOpen }: { onOpen: (k: CounterKey) => void }) {
-  const highFlags = redFlags.filter(f => f.severity === "high").length;
-  const riskMgrs = managers.filter(m => m.risk !== "норма").length;
-  const items: { key: CounterKey | "flags"; label: string; value: number | string; tone: "danger" | "warning" }[] = [
-    { key: "flags", label: "Красные флаги", value: highFlags, tone: "danger" },
-    { key: "problemClients", label: "Проблемные клиенты", value: riskCounterDetails.problemClients.length, tone: "danger" },
-    { key: "stagnantDeals", label: "Сделки без движения", value: riskCounterDetails.stagnantDeals.length, tone: "warning" },
-    { key: "overdueClients", label: "Клиенты с просрочкой", value: riskCounterDetails.overdueClients.length, tone: "warning" },
-    { key: "riskManagers", label: "Менеджеры в риск-зоне", value: riskMgrs, tone: "warning" },
-  ];
+/* ============ Block: Сводка (управленческий) ============ */
+type CounterKey = "flags" | "problemClients" | "overdueClients" | "stagnantDeals" | "riskManagers";
+
+const sourceItems: {
+  key: CounterKey;
+  label: string;
+  hint: string;
+  cta: string;
+  tone: "danger" | "warning";
+  getValue: () => number;
+}[] = [
+  { key: "flags", label: "Критичные сигналы", hint: "Требуют решения сегодня", cta: "Смотреть сигналы →", tone: "danger",
+    getValue: () => redFlags.filter(f => f.severity === "high").length },
+  { key: "problemClients", label: "Проблемные клиенты", hint: "Создают риск оплат", cta: "Смотреть клиентов →", tone: "danger",
+    getValue: () => riskCounterDetails.problemClients.length },
+  { key: "overdueClients", label: "Просрочка", hint: "Долги с нарушением срока", cta: "Разобрать долги →", tone: "danger",
+    getValue: () => riskCounterDetails.overdueClients.length },
+  { key: "stagnantDeals", label: "Сделки без движения", hint: "Нет следующего шага", cta: "Назначить действия →", tone: "warning",
+    getValue: () => riskCounterDetails.stagnantDeals.length },
+];
+
+function MainRiskCard() {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
-      {items.map(it => {
-        const clickable = it.key !== "flags";
-        return (
-          <button
-            key={it.key}
-            onClick={() => clickable && onOpen(it.key as CounterKey)}
-            className={cn(
-              "relative text-left rounded-md border border-border bg-card px-3 py-2.5 overflow-hidden transition-colors",
-              clickable && "hover:border-accent/50 active:bg-muted/40 cursor-pointer"
-            )}
-          >
-            <span className={cn("absolute left-0 top-0 bottom-0 w-0.5", it.tone === "danger" ? "bg-destructive" : "bg-warning")} />
-            <div className="text-[10.5px] uppercase tracking-wide text-muted-foreground leading-tight">{it.label}</div>
-            <div className={cn("num font-display font-semibold text-lg leading-tight mt-1",
-              it.tone === "danger" ? "text-destructive" : "text-warning")}>
-              {it.value}
-            </div>
-            {clickable && <div className="text-[10px] text-muted-foreground mt-0.5">показать →</div>}
-          </button>
-        );
-      })}
+    <div className="rounded-md border border-destructive/30 bg-destructive/[0.06] dark:bg-destructive/10 px-3.5 py-3">
+      <div className="text-[10.5px] uppercase tracking-wide text-muted-foreground">Главный риск</div>
+      <div className="flex items-baseline justify-between gap-2 mt-0.5">
+        <div className="text-[13px] font-semibold">Кассовый разрыв</div>
+        <div className="num font-display font-bold text-lg text-destructive">−{formatShort(cashGap)} ₽</div>
+      </div>
+      <div className="text-[11.5px] mt-1.5">
+        <span className="text-muted-foreground">Почему: </span>
+        просрочка 3 млн ₽ + неоплачено 7,2 млн ₽
+      </div>
+      <div className="flex items-start gap-1.5 text-[11.5px] mt-1 pt-1.5 border-t border-destructive/20">
+        <ArrowRightCircle className="h-3.5 w-3.5 text-accent shrink-0 mt-0.5" />
+        <span><span className="text-muted-foreground">Что сделать: </span>разобрать 3 крупнейших долга сегодня</span>
+      </div>
     </div>
   );
 }
 
-type CounterKey = "problemClients" | "overdueClients" | "stagnantDeals" | "riskManagers";
+function SourceTile({ item, onOpen }: { item: typeof sourceItems[number]; onOpen: (k: CounterKey) => void }) {
+  return (
+    <button
+      onClick={() => onOpen(item.key)}
+      className="relative text-left rounded-md border border-border bg-card px-3 py-2.5 overflow-hidden hover:border-accent/50 active:bg-muted/40 transition-colors flex flex-col"
+    >
+      <span className={cn("absolute left-0 top-0 bottom-0 w-0.5", item.tone === "danger" ? "bg-destructive" : "bg-warning")} />
+      <div className="text-[11px] font-medium leading-tight">{item.label}</div>
+      <div className={cn("num font-display font-semibold text-xl leading-tight mt-0.5",
+        item.tone === "danger" ? "text-destructive" : "text-warning")}>
+        {item.getValue()}
+      </div>
+      <div className="text-[10.5px] text-muted-foreground mt-0.5 leading-tight">{item.hint}</div>
+      <div className="text-[10.5px] text-accent mt-1.5 leading-tight">{item.cta}</div>
+    </button>
+  );
+}
+
+function ManagersAttentionRow({ onOpen }: { onOpen: (k: CounterKey) => void }) {
+  const count = riskCounterDetails.riskManagers.length;
+  return (
+    <button
+      onClick={() => onOpen("riskManagers")}
+      className="w-full text-left rounded-md border border-border bg-card px-3 py-2.5 hover:border-accent/50 active:bg-muted/40 transition-colors flex items-center justify-between gap-3"
+    >
+      <div className="flex items-center gap-2.5 min-w-0">
+        <Users className="h-4 w-4 text-warning shrink-0" />
+        <div className="min-w-0">
+          <div className="text-[12px] font-medium leading-tight">Менеджеры в зоне внимания</div>
+          <div className="text-[10.5px] text-muted-foreground leading-tight mt-0.5">
+            {count} {count === 1 ? "менеджер связан" : "менеджера связаны"} с рисками оплат
+          </div>
+        </div>
+      </div>
+      <div className="text-[10.5px] text-accent shrink-0 whitespace-nowrap">Смотреть →</div>
+    </button>
+  );
+}
+
+function CountersGrid({ onOpen }: { onOpen: (k: CounterKey) => void }) {
+  return (
+    <div className="space-y-2.5">
+      <MainRiskCard />
+      <div className="grid grid-cols-2 gap-2">
+        {sourceItems.map(it => <SourceTile key={it.key} item={it} onOpen={onOpen} />)}
+      </div>
+      <ManagersAttentionRow onOpen={onOpen} />
+    </div>
+  );
+}
 
 function CounterDetails({ k, onClose }: { k: CounterKey; onClose: () => void }) {
   const titleMap: Record<CounterKey, string> = {
+    flags: "Критичные сигналы",
     problemClients: "Проблемные клиенты",
     overdueClients: "Клиенты с просрочкой",
     stagnantDeals: "Сделки без движения >7 дн",
-    riskManagers: "Менеджеры в риск-зоне",
+    riskManagers: "Менеджеры в зоне внимания",
   };
-  const list = riskCounterDetails[k];
+  if (k === "flags") {
+    const list = redFlags.filter(f => f.severity === "high");
+    return (
+      <div className="mt-3 rounded-md border border-border bg-muted/30 dark:bg-muted/10 p-3">
+        <div className="flex items-center justify-between mb-2">
+          <div className="text-[12px] font-semibold">{titleMap[k]}</div>
+          <button onClick={onClose} className="text-[11px] text-muted-foreground hover:text-foreground">скрыть</button>
+        </div>
+        <div className="divide-y divide-border">
+          {list.map((f, i) => (
+            <div key={i} className="py-1.5 text-[12px]">
+              <div className="font-medium leading-snug">{f.title}</div>
+              <div className="text-[10.5px] text-muted-foreground mt-0.5">
+                {(f.who || f.area)}{f.amount ? ` · ${f.amount}` : ""}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  const list = riskCounterDetails[k as Exclude<CounterKey, "flags">];
   return (
     <div className="mt-3 rounded-md border border-border bg-muted/30 dark:bg-muted/10 p-3">
       <div className="flex items-center justify-between mb-2">
