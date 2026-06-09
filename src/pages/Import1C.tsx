@@ -145,9 +145,11 @@ type AppliedSummary = {
 };
 
 export default function Import1C() {
+  const isMobile = useIsMobile();
   const [openType, setOpenType] = useState<FileType | null>("receivables");
   const [showErr, setShowErr] = useState(true);
   const [showWarn, setShowWarn] = useState(false);
+  const [showTechMobile, setShowTechMobile] = useState(false);
 
   // Receivables import state
   const fileInputRef = useRef<HTMLInputElement>(null);
