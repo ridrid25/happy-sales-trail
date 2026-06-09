@@ -161,7 +161,11 @@ export default function Import1C() {
   // Inline-fix state (session-only)
   const [fixedRows, setFixedRows] = useState<Set<number>>(new Set());
   const [fixLog, setFixLog] = useState<{ row: number; fields: string[] }[]>([]);
-  const [editingRow, setEditingRow] = useState<ReceivableRow | null>(null);
+  const [editing, setEditing] = useState<{ rowNum: number; focusField?: string } | null>(null);
+  const editingRow = useMemo(
+    () => (editing && result ? result.rows.find((x) => x.rowNum === editing.rowNum) ?? null : null),
+    [editing, result],
+  );
 
   const summary = useMemo(() => (result ? summarize(result) : null), [result]);
   const quality = useMemo(() => {
