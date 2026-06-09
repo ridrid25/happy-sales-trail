@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { PageHeader, Card, Stat, Badge, ProgressBar } from "@/components/ui-bits";
 import {
   Upload, FileDown, ShieldCheck, FileSpreadsheet, FileJson, FileText,
