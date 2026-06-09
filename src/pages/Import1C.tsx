@@ -268,19 +268,22 @@ export default function Import1C() {
         title="Импорт из 1С"
         subtitle="Ручной импорт из выгрузки 1С · файл обрабатывается локально в браузере · прямого подключения к базе 1С нет"
         actions={
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium bg-accent text-accent-foreground hover:opacity-90"
-            >
-              <Upload className="h-4 w-4" /> Загрузить файл дебиторки
-            </button>
-            <button
-              onClick={handleDownloadTemplate}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium border border-border hover:bg-muted"
-            >
-              <FileDown className="h-4 w-4" /> Скачать шаблон дебиторки
-            </button>
+          <div className="flex flex-col items-start gap-1.5">
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium bg-accent text-accent-foreground hover:opacity-90"
+              >
+                <Upload className="h-4 w-4" /> Загрузить файл дебиторки
+              </button>
+              <button
+                onClick={handleDownloadTemplate}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium border border-border hover:bg-muted"
+              >
+                <FileDown className="h-4 w-4" /> Скачать шаблон дебиторки
+              </button>
+            </div>
+            <div className="text-[11px] text-muted-foreground">Шаблон сохранён в UTF-8 и корректно открывается в Excel.</div>
           </div>
         }
       />
