@@ -81,10 +81,12 @@ const mapping = [
   { from: "Дата платежа по договору", to: "Дата плановой оплаты" },
 ];
 
-const initialHistory = [
-  { date: "08.06.2026 09:30", type: "Продажи", records: 420, errors: 0, warnings: 6, status: "ok" as const, user: "А. Новиков", fileName: "—" },
-  { date: "08.06.2026 09:35", type: "Оплаты", records: 310, errors: 2, warnings: 4, status: "warnings" as const, user: "А. Новиков", fileName: "—" },
-  { date: "07.06.2026 18:12", type: "Клиенты", records: 248, errors: 0, warnings: 0, status: "ok" as const, user: "Е. Дронова", fileName: "—" },
+type HistoryStatus = "ok" | "warnings" | "errors";
+type HistoryItem = { date: string; type: string; records: number; errors: number; warnings: number; status: HistoryStatus; user: string; fileName: string };
+const initialHistory: HistoryItem[] = [
+  { date: "08.06.2026 09:30", type: "Продажи", records: 420, errors: 0, warnings: 6, status: "ok", user: "А. Новиков", fileName: "—" },
+  { date: "08.06.2026 09:35", type: "Оплаты", records: 310, errors: 2, warnings: 4, status: "warnings", user: "А. Новиков", fileName: "—" },
+  { date: "07.06.2026 18:12", type: "Клиенты", records: 248, errors: 0, warnings: 0, status: "ok", user: "Е. Дронова", fileName: "—" },
 ];
 
 const downstream = [
