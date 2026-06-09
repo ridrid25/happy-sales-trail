@@ -733,6 +733,9 @@ export default function Import1C() {
           </div>
         </Card>
       </div>
+      </div>
+
+
 
       <EditRowDialog
         row={editingRow}
