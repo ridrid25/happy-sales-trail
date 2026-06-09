@@ -218,6 +218,46 @@ function TodayActionsMobile() {
   );
 }
 
+function CompactRows({ rows }: { rows: { label: string; value: string; tone?: "default" | "success" | "warning" | "danger" }[] }) {
+  return (
+    <div className="divide-y divide-border rounded-md border border-border overflow-hidden">
+      {rows.map((r, i) => {
+        const toneCls = { default: "text-foreground", success: "text-success", warning: "text-warning", danger: "text-destructive" }[r.tone || "default"];
+        return (
+          <div key={i} className="flex items-center justify-between gap-3 px-3 py-2 bg-card">
+            <div className="text-[12.5px] text-muted-foreground">{r.label}</div>
+            <div className={cn("num text-[13px] font-semibold text-right", toneCls)}>{r.value}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function CollapsibleSection({
+  title, icon, summary, children, defaultOpen = false,
+}: { title: string; icon: React.ReactNode; summary?: string; children: React.ReactNode; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="bg-card border border-border rounded-lg shadow-card overflow-hidden">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between gap-3 px-4 py-3 active:bg-muted/40"
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-accent shrink-0">{icon}</span>
+          <div className="min-w-0 text-left">
+            <div className="text-[13px] font-semibold leading-tight">{title}</div>
+            {summary && <div className="text-[11px] text-muted-foreground leading-tight mt-0.5 truncate">{summary}</div>}
+          </div>
+        </div>
+        <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform shrink-0", open && "rotate-180")} />
+      </button>
+      {open && <div className="px-4 pb-4 pt-1">{children}</div>}
+    </div>
+  );
+}
+
 
 /* ============== DESKTOP (original) ============== */
 
