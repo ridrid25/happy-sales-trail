@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import {
   LayoutDashboard, Users, Briefcase, GitBranch, Wallet, Building2,
@@ -7,25 +7,53 @@ import {
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/ThemeProvider";
 
-const nav = [
-  { to: "/", label: "Дашборд", icon: LayoutDashboard, end: true },
-  { to: "/managers", label: "Менеджеры", icon: Users },
-  { to: "/deals", label: "Сделки", icon: Briefcase },
-  { to: "/funnel", label: "Воронка продаж", icon: GitBranch },
-  { to: "/receivables", label: "Дебиторка", icon: Wallet },
-  { to: "/clients", label: "Клиенты", icon: Building2 },
-  { to: "/plan-fact", label: "План-факт", icon: Target },
-  { to: "/actions", label: "Контроль действий", icon: ClipboardCheck },
-  { to: "/variance", label: "Аналитика отклонений", icon: LineChart },
-  { to: "/import-1c", label: "Импорт из 1С", icon: Database },
+const navGroups: { title: string; items: { to: string; label: string; icon: any; end?: boolean }[] }[] = [
+  {
+    title: "Основное",
+    items: [
+      { to: "/", label: "Дашборд", icon: LayoutDashboard, end: true },
+      { to: "/managers", label: "Менеджеры", icon: Users },
+      { to: "/deals", label: "Сделки", icon: Briefcase },
+      { to: "/receivables", label: "Дебиторка", icon: Wallet },
+      { to: "/clients", label: "Клиенты", icon: Building2 },
+    ],
+  },
+  {
+    title: "Управление",
+    items: [
+      { to: "/variance", label: "Риски и отклонения", icon: LineChart },
+      { to: "/actions", label: "Контроль действий", icon: ClipboardCheck },
+      { to: "/plan-fact", label: "План-факт", icon: Target },
+    ],
+  },
+  {
+    title: "Аналитика",
+    items: [
+      { to: "/funnel", label: "Воронка продаж", icon: GitBranch },
+    ],
+  },
+  {
+    title: "Администрирование",
+    items: [
+      { to: "/import-1c", label: "Импорт из 1С", icon: Database },
+    ],
+  },
 ];
 
-const quickTabs = [
-  { to: "/", label: "Дашборд", end: true },
-  { to: "/variance", label: "Риски" },
-  { to: "/receivables", label: "Деньги" },
-  { to: "/import-1c", label: "Импорт" },
+const nav = navGroups.flatMap((g) => g.items);
+
+type QuickTab =
+  | { kind: "scroll"; id: string; label: string; section?: string }
+  | { kind: "menu"; label: string };
+
+const quickTabs: QuickTab[] = [
+  { kind: "scroll", id: "dashboard", label: "Дашборд" },
+  { kind: "scroll", id: "money", label: "Деньги", section: "section-money" },
+  { kind: "scroll", id: "risks", label: "Риски", section: "section-risks" },
+  { kind: "scroll", id: "actions", label: "Действия", section: "section-actions" },
+  { kind: "menu", label: "Меню" },
 ];
+
 
 const roles = ["Собственник", "РОП", "Финдиректор", "Менеджер"];
 
