@@ -50,7 +50,8 @@ export default function Dashboard() {
       />
 
 
-      {/* Управленческий вывод */}
+      {/* Управленческий вывод / Статус */}
+      <div id="section-status" className="scroll-mt-32">
       <Card className="mb-4 border-l-4 border-l-warning bg-warning/[0.03] dark:bg-warning/[0.06] dark:border-warning/30 dark:shadow-elevated">
         <div className="flex items-start gap-3">
           <div className="h-9 w-9 rounded-md bg-warning/15 text-warning flex items-center justify-center shrink-0 ring-1 ring-warning/30">
@@ -64,6 +65,7 @@ export default function Dashboard() {
           </div>
         </div>
       </Card>
+      </div>
 
       {isMobile ? <MobileView paidPct={paidPct} unpaidPct={unpaidPct} /> : <DesktopView paidPct={paidPct} unpaidPct={unpaidPct} />}
     </>
