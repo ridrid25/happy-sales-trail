@@ -20,6 +20,13 @@ const nav = [
   { to: "/import-1c", label: "Импорт из 1С", icon: Database },
 ];
 
+const quickTabs = [
+  { to: "/", label: "Дашборд", end: true },
+  { to: "/variance", label: "Риски" },
+  { to: "/receivables", label: "Деньги" },
+  { to: "/import-1c", label: "Импорт" },
+];
+
 const roles = ["Собственник", "РОП", "Финдиректор", "Менеджер"];
 
 export default function AppLayout() {
