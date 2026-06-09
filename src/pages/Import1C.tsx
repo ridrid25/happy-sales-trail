@@ -646,6 +646,12 @@ export default function Import1C() {
           </div>
         </Card>
       </div>
+
+      <EditRowDialog
+        row={editingRow}
+        onCancel={() => setEditingRow(null)}
+        onSave={saveEditedRow}
+      />
     </>
   );
 }
