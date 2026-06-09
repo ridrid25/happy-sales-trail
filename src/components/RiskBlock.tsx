@@ -398,7 +398,7 @@ export function RiskBlock({ mobile = false }: { mobile?: boolean }) {
       </Section>
 
       <Section
-        title="Красные флаги"
+        title="Критичные сигналы"
         icon={<Target className="h-4 w-4" />}
         summary={`${highFlags} высоких · ${riskMgrs} менеджеров в зоне`}
         tone="danger"
