@@ -755,7 +755,7 @@ function IssueList({ items, tone, empty, onFix }: { items: Issue[]; tone: "destr
           {onFix && (
             <div className="mt-2 flex justify-end">
               <button
-                onClick={() => onFix(it.row)}
+                onClick={() => onFix(it.row, it.field)}
                 className="inline-flex items-center gap-1 text-[12px] px-2 py-1 rounded-md border border-border bg-card hover:bg-muted"
               >
                 <Wrench className="h-3.5 w-3.5" /> Исправить
