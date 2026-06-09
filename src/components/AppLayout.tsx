@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import {
   LayoutDashboard, Users, Briefcase, GitBranch, Wallet, Building2,
@@ -7,25 +7,53 @@ import {
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/ThemeProvider";
 
-const nav = [
-  { to: "/", label: "Дашборд", icon: LayoutDashboard, end: true },
-  { to: "/managers", label: "Менеджеры", icon: Users },
-  { to: "/deals", label: "Сделки", icon: Briefcase },
-  { to: "/funnel", label: "Воронка продаж", icon: GitBranch },
-  { to: "/receivables", label: "Дебиторка", icon: Wallet },
-  { to: "/clients", label: "Клиенты", icon: Building2 },
-  { to: "/plan-fact", label: "План-факт", icon: Target },
-  { to: "/actions", label: "Контроль действий", icon: ClipboardCheck },
-  { to: "/variance", label: "Аналитика отклонений", icon: LineChart },
-  { to: "/import-1c", label: "Импорт из 1С", icon: Database },
+const navGroups: { title: string; items: { to: string; label: string; icon: any; end?: boolean }[] }[] = [
+  {
+    title: "Основное",
+    items: [
+      { to: "/", label: "Дашборд", icon: LayoutDashboard, end: true },
+      { to: "/managers", label: "Менеджеры", icon: Users },
+      { to: "/deals", label: "Сделки", icon: Briefcase },
+      { to: "/receivables", label: "Дебиторка", icon: Wallet },
+      { to: "/clients", label: "Клиенты", icon: Building2 },
+    ],
+  },
+  {
+    title: "Управление",
+    items: [
+      { to: "/variance", label: "Риски и отклонения", icon: LineChart },
+      { to: "/actions", label: "Контроль действий", icon: ClipboardCheck },
+      { to: "/plan-fact", label: "План-факт", icon: Target },
+    ],
+  },
+  {
+    title: "Аналитика",
+    items: [
+      { to: "/funnel", label: "Воронка продаж", icon: GitBranch },
+    ],
+  },
+  {
+    title: "Администрирование",
+    items: [
+      { to: "/import-1c", label: "Импорт из 1С", icon: Database },
+    ],
+  },
 ];
 
-const quickTabs = [
-  { to: "/", label: "Дашборд", end: true },
-  { to: "/variance", label: "Риски" },
-  { to: "/receivables", label: "Деньги" },
-  { to: "/import-1c", label: "Импорт" },
+const nav = navGroups.flatMap((g) => g.items);
+
+type QuickTab =
+  | { kind: "scroll"; id: string; label: string; section?: string }
+  | { kind: "menu"; label: string };
+
+const quickTabs: QuickTab[] = [
+  { kind: "scroll", id: "dashboard", label: "Дашборд" },
+  { kind: "scroll", id: "money", label: "Деньги", section: "section-money" },
+  { kind: "scroll", id: "risks", label: "Риски", section: "section-risks" },
+  { kind: "scroll", id: "actions", label: "Действия", section: "section-actions" },
+  { kind: "menu", label: "Меню" },
 ];
+
 
 const roles = ["Собственник", "РОП", "Финдиректор", "Менеджер"];
 
@@ -33,6 +61,8 @@ export default function AppLayout() {
   const [open, setOpen] = useState(false);
   const [role, setRole] = useState("Собственник");
   const location = useLocation();
+  const navigate = useNavigate();
+
   const { theme, toggle } = useTheme();
 
   return (
@@ -91,54 +121,79 @@ export default function AppLayout() {
       {/* Mobile quick-tabs strip */}
       <div className="lg:hidden sticky top-16 z-30 bg-background/95 backdrop-blur border-b border-border">
         <div className="flex items-center gap-1 px-2 py-1.5 overflow-x-auto scrollbar-thin">
-          {quickTabs.map((t) => (
-            <NavLink
-              key={t.to}
-              to={t.to}
-              end={t.end}
-              className={({ isActive }) => cn(
-                "px-3 py-1.5 rounded-full text-[12px] font-medium whitespace-nowrap shrink-0 transition-colors",
-                isActive
-                  ? "bg-accent text-accent-foreground"
-                  : "bg-muted/60 text-foreground/80 hover:bg-muted"
-              )}
-            >
-              {t.label}
-            </NavLink>
-          ))}
-          <button
-            onClick={() => setOpen(true)}
-            className="px-3 py-1.5 rounded-full text-[12px] font-medium whitespace-nowrap shrink-0 bg-muted/60 text-foreground/80 hover:bg-muted inline-flex items-center gap-1"
-          >
-            <Menu className="h-3.5 w-3.5" /> Меню
-          </button>
+          {quickTabs.map((t) => {
+            const onDashboard = location.pathname === "/";
+            const handleClick = () => {
+              if (t.kind === "menu") {
+                setOpen(true);
+                return;
+              }
+              const scrollTo = () => {
+                if (!t.section) {
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                  return;
+                }
+                const el = document.getElementById(t.section);
+                if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+              };
+              if (!onDashboard) {
+                navigate("/");
+                setTimeout(scrollTo, 80);
+              } else {
+                scrollTo();
+              }
+            };
+            return (
+              <button
+                key={t.label}
+                onClick={handleClick}
+                className={cn(
+                  "px-3 py-1.5 rounded-full text-[12px] font-medium whitespace-nowrap shrink-0 transition-colors inline-flex items-center gap-1",
+                  "bg-muted/60 text-foreground/80 hover:bg-muted"
+                )}
+              >
+                {t.kind === "menu" && <Menu className="h-3.5 w-3.5" />}
+                {t.label}
+              </button>
+            );
+          })}
         </div>
       </div>
+
 
       <div className="flex">
 
         {/* Sidebar desktop */}
         <aside className="hidden lg:flex flex-col w-60 shrink-0 bg-sidebar text-sidebar-foreground border-r border-sidebar-border min-h-[calc(100vh-4rem)] sticky top-16">
-          <nav className="p-3 space-y-0.5 flex-1">
-            {nav.map((item) => {
-              const Icon = item.icon;
-              return (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  end={item.end}
-                  className={({ isActive }) => cn(
-                    "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors",
-                    isActive
-                      ? "bg-sidebar-accent text-white font-medium"
-                      : "text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-white"
-                  )}
-                >
-                  <Icon className="h-4 w-4 shrink-0" />
-                  <span>{item.label}</span>
-                </NavLink>
-              );
-            })}
+          <nav className="p-3 space-y-3 flex-1 overflow-y-auto">
+            {navGroups.map((group) => (
+              <div key={group.title}>
+                <div className="px-3 pb-1 text-[10px] uppercase tracking-wider text-sidebar-foreground/50 font-semibold">
+                  {group.title}
+                </div>
+                <div className="space-y-0.5">
+                  {group.items.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <NavLink
+                        key={item.to}
+                        to={item.to}
+                        end={item.end}
+                        className={({ isActive }) => cn(
+                          "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors",
+                          isActive
+                            ? "bg-sidebar-accent text-white font-medium"
+                            : "text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-white"
+                        )}
+                      >
+                        <Icon className="h-4 w-4 shrink-0" />
+                        <span>{item.label}</span>
+                      </NavLink>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </nav>
           <div className="p-4 border-t border-sidebar-border text-[11px] text-sidebar-foreground/60">
             Демо-данные · Май 2026
@@ -149,28 +204,38 @@ export default function AppLayout() {
         {open && (
           <div className="lg:hidden fixed inset-0 z-30 top-16" onClick={() => setOpen(false)}>
             <div className="absolute inset-0 bg-black/40" />
-            <aside className="absolute left-0 top-0 bottom-0 w-72 bg-sidebar text-sidebar-foreground p-3 overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-              {nav.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <NavLink
-                    key={item.to}
-                    to={item.to}
-                    end={item.end}
-                    onClick={() => setOpen(false)}
-                    className={({ isActive }) => cn(
-                      "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm",
-                      isActive ? "bg-sidebar-accent text-white font-medium" : "hover:bg-sidebar-accent/60"
-                    )}
-                  >
-                    <Icon className="h-4 w-4" />
-                    {item.label}
-                  </NavLink>
-                );
-              })}
+            <aside className="absolute left-0 top-0 bottom-0 w-72 bg-sidebar text-sidebar-foreground p-3 overflow-y-auto space-y-3" onClick={(e) => e.stopPropagation()}>
+              {navGroups.map((group) => (
+                <div key={group.title}>
+                  <div className="px-3 pb-1 text-[10px] uppercase tracking-wider text-sidebar-foreground/50 font-semibold">
+                    {group.title}
+                  </div>
+                  <div className="space-y-0.5">
+                    {group.items.map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <NavLink
+                          key={item.to}
+                          to={item.to}
+                          end={item.end}
+                          onClick={() => setOpen(false)}
+                          className={({ isActive }) => cn(
+                            "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm",
+                            isActive ? "bg-sidebar-accent text-white font-medium" : "hover:bg-sidebar-accent/60"
+                          )}
+                        >
+                          <Icon className="h-4 w-4" />
+                          {item.label}
+                        </NavLink>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </aside>
           </div>
         )}
+
 
         {/* Main */}
         <main className="flex-1 min-w-0">
