@@ -736,7 +736,7 @@ function RowsPreview({ rows, fixedRows }: { rows: ReceivableRow[]; fixedRows: Se
   );
 }
 
-function IssueList({ items, tone, empty, onFix }: { items: Issue[]; tone: "destructive" | "warning"; empty: string; onFix?: (rowNum: number) => void }) {
+function IssueList({ items, tone, empty, onFix }: { items: Issue[]; tone: "destructive" | "warning"; empty: string; onFix?: (rowNum: number, field: string) => void }) {
   if (items.length === 0) {
     return <div className="text-[12px] text-muted-foreground px-3 py-2">{empty}</div>;
   }
