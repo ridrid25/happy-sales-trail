@@ -112,7 +112,23 @@ export function buildTemplateCSV(): string {
     ["R-0002", "Полюс Тех", "7707654321", "ДГ-102/24", "Алексей Петров", "720000", "280000", "10.04.2026", "10.05.2026", "21", "частично", ""],
     ["R-0003", "Северсталь Digital", "7809988776", "ДГ-201/24", "Мария Соколова", "0", "0", "", "", "0", "оплачено", "закрыто в срок"],
   ].map((r) => r.map((c) => /[",\n;]/.test(c) ? `"${c.replace(/"/g, '""')}"` : c).join(","));
-  return [header, ...sample].join("\n");
+  // Prepend UTF-8 BOM so Excel on Windows opens Cyrillic correctly.
+  return "\uFEFF" + [header, ...sample].join("\n");
+}
+
+// Re-run validation on already-normalized rows (e.g. after inline edits),
+// preserving the original source rowNum so issue references stay stable.
+export function revalidate(rows: ReceivableRow[]): ParseResult {
+  const out: ReceivableRow[] = [];
+  const errors: Issue[] = [];
+  const warnings: Issue[] = [];
+  rows.forEach((r) => {
+    const res = normalize(r as unknown as Record<string, unknown>, r.rowNum);
+    out.push(res.row);
+    errors.push(...res.errors);
+    warnings.push(...res.warnings);
+  });
+  return { rows: out, errors, warnings };
 }
 
 const VALID_STATUSES = new Set([
