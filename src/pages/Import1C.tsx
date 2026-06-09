@@ -161,7 +161,11 @@ export default function Import1C() {
   // Inline-fix state (session-only)
   const [fixedRows, setFixedRows] = useState<Set<number>>(new Set());
   const [fixLog, setFixLog] = useState<{ row: number; fields: string[] }[]>([]);
-  const [editingRow, setEditingRow] = useState<ReceivableRow | null>(null);
+  const [editing, setEditing] = useState<{ rowNum: number; focusField?: string } | null>(null);
+  const editingRow = useMemo(
+    () => (editing && result ? result.rows.find((x) => x.rowNum === editing.rowNum) ?? null : null),
+    [editing, result],
+  );
 
   const summary = useMemo(() => (result ? summarize(result) : null), [result]);
   const quality = useMemo(() => {
@@ -201,10 +205,10 @@ export default function Import1C() {
     }
   }
 
-  function openEditor(rowNum: number) {
+  function openEditor(rowNum: number, focusField?: string) {
     if (!result) return;
     const r = result.rows.find((x) => x.rowNum === rowNum);
-    if (r) setEditingRow({ ...r });
+    if (r) setEditing({ rowNum, focusField });
   }
 
   function saveEditedRow(edited: ReceivableRow) {
@@ -225,7 +229,9 @@ export default function Import1C() {
       const without = log.filter((e) => e.row !== edited.rowNum);
       return [{ row: edited.rowNum, fields: changed }, ...without];
     });
-    setEditingRow(null);
+    const remaining = next.errors.filter((e) => e.row === edited.rowNum).length;
+    if (remaining === 0) setEditing(null);
+    else setEditing({ rowNum: edited.rowNum });
   }
 
 
@@ -649,7 +655,10 @@ export default function Import1C() {
 
       <EditRowDialog
         row={editingRow}
-        onCancel={() => setEditingRow(null)}
+        focusField={editing?.focusField}
+        errors={result?.errors.filter((e) => editingRow && e.row === editingRow.rowNum) ?? []}
+        warnings={result?.warnings.filter((w) => editingRow && w.row === editingRow.rowNum) ?? []}
+        onCancel={() => setEditing(null)}
         onSave={saveEditedRow}
       />
     </>
@@ -727,7 +736,7 @@ function RowsPreview({ rows, fixedRows }: { rows: ReceivableRow[]; fixedRows: Se
   );
 }
 
-function IssueList({ items, tone, empty, onFix }: { items: Issue[]; tone: "destructive" | "warning"; empty: string; onFix?: (rowNum: number) => void }) {
+function IssueList({ items, tone, empty, onFix }: { items: Issue[]; tone: "destructive" | "warning"; empty: string; onFix?: (rowNum: number, field: string) => void }) {
   if (items.length === 0) {
     return <div className="text-[12px] text-muted-foreground px-3 py-2">{empty}</div>;
   }
@@ -746,7 +755,7 @@ function IssueList({ items, tone, empty, onFix }: { items: Issue[]; tone: "destr
           {onFix && (
             <div className="mt-2 flex justify-end">
               <button
-                onClick={() => onFix(it.row)}
+                onClick={() => onFix(it.row, it.field)}
                 className="inline-flex items-center gap-1 text-[12px] px-2 py-1 rounded-md border border-border bg-card hover:bg-muted"
               >
                 <Wrench className="h-3.5 w-3.5" /> Исправить
@@ -775,13 +784,66 @@ function fromIsoDate(s: string): string {
   return m ? `${m[3]}.${m[2]}.${m[1]}` : s;
 }
 
+const FIELD_LABELS: Record<string, string> = {
+  receivable_id: "ID дебиторки",
+  клиент: "Клиент",
+  инн: "ИНН",
+  договор: "Договор",
+  менеджер: "Менеджер",
+  сумма_долга: "Сумма долга",
+  сумма_просрочки: "Сумма просрочки",
+  дата_возникновения: "Дата возникновения",
+  дата_плановой_оплаты: "Дата плановой оплаты",
+  дней_просрочки: "Дней просрочки",
+  статус_оплаты: "Статус оплаты",
+  комментарий: "Комментарий",
+};
+
 function EditRowDialog({
-  row, onCancel, onSave,
-}: { row: ReceivableRow | null; onCancel: () => void; onSave: (r: ReceivableRow) => void }) {
+  row, focusField, errors, warnings, onCancel, onSave,
+}: {
+  row: ReceivableRow | null;
+  focusField?: string;
+  errors: Issue[];
+  warnings: Issue[];
+  onCancel: () => void;
+  onSave: (r: ReceivableRow) => void;
+}) {
   const [draft, setDraft] = useState<ReceivableRow | null>(null);
+  const fieldRefs = useRef<Record<string, HTMLElement | null>>({});
 
   // Sync draft when row changes
   useEffect(() => { setDraft(row ? { ...row } : null); }, [row]);
+
+  // Maps field -> first issue (error wins over warning)
+  const errByField = useMemo(() => {
+    const m: Record<string, Issue> = {};
+    errors.forEach((e) => { if (!m[e.field]) m[e.field] = e; });
+    return m;
+  }, [errors]);
+  const warnByField = useMemo(() => {
+    const m: Record<string, Issue> = {};
+    warnings.forEach((w) => { if (!m[w.field]) m[w.field] = w; });
+    return m;
+  }, [warnings]);
+
+  // Auto-focus the first problem field (or explicitly requested one)
+  useEffect(() => {
+    if (!row) return;
+    const target =
+      (focusField && (errByField[focusField] || warnByField[focusField]) ? focusField : null) ||
+      errors[0]?.field ||
+      warnings[0]?.field;
+    if (!target) return;
+    const t = setTimeout(() => {
+      const el = fieldRefs.current[target];
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        try { (el as HTMLInputElement).focus({ preventScroll: true }); } catch { /* noop */ }
+      }
+    }, 80);
+    return () => clearTimeout(t);
+  }, [row, focusField, errByField, warnByField, errors, warnings]);
 
   if (!row || !draft) {
     return (
@@ -794,9 +856,36 @@ function EditRowDialog({
   const set = <K extends keyof ReceivableRow>(k: K, v: ReceivableRow[K]) =>
     setDraft((d) => (d ? { ...d, [k]: v } : d));
 
+  // Field shell: applies highlight + helper text, registers ref
+  function Field({
+    name, label, children, full,
+  }: { name: string; label: string; children: (cls: string, ref: (el: HTMLElement | null) => void) => React.ReactNode; full?: boolean }) {
+    const err = errByField[name];
+    const warn = !err ? warnByField[name] : undefined;
+    const ring = err
+      ? "border-destructive ring-1 ring-destructive/40 bg-destructive/5"
+      : warn
+      ? "border-warning ring-1 ring-warning/40 bg-warning/5"
+      : "";
+    const setRef = (el: HTMLElement | null) => { fieldRefs.current[name] = el; };
+    return (
+      <div className={cn("space-y-1.5", full && "sm:col-span-2")}>
+        <div className="flex items-center justify-between gap-2">
+          <Label className={cn(err && "text-destructive", warn && "text-warning")}>{label}</Label>
+          {(err || warn) && <span className="text-[10px] font-mono text-muted-foreground">{name}</span>}
+        </div>
+        {children(ring, setRef)}
+        {err && <div className="text-[11px] text-destructive">{err.problem}. {err.hint}</div>}
+        {warn && <div className="text-[11px] text-warning">{warn.problem}. {warn.hint}</div>}
+      </div>
+    );
+  }
+
+  const allIssues = [...errors, ...warnings];
+
   return (
     <Dialog open={!!row} onOpenChange={(o) => { if (!o) onCancel(); }}>
-      <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-xl w-[calc(100vw-1.5rem)] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Редактирование строки импорта · #{draft.rowNum}</DialogTitle>
           <DialogDescription>
@@ -804,67 +893,99 @@ function EditRowDialog({
           </DialogDescription>
         </DialogHeader>
 
+        {allIssues.length > 0 ? (
+          <div className={cn(
+            "rounded-md border px-3 py-2 text-[12px]",
+            errors.length > 0
+              ? "border-destructive/30 bg-destructive/5"
+              : "border-warning/30 bg-warning/5",
+          )}>
+            <div className={cn(
+              "font-medium mb-1 flex items-center gap-1.5",
+              errors.length > 0 ? "text-destructive" : "text-warning",
+            )}>
+              {errors.length > 0
+                ? <><XCircle className="h-3.5 w-3.5" /> Нужно исправить:</>
+                : <><AlertTriangle className="h-3.5 w-3.5" /> Обратите внимание:</>}
+            </div>
+            <ul className="space-y-0.5 pl-4 list-disc text-foreground/90">
+              {allIssues.map((it, i) => (
+                <li key={i}>
+                  <button
+                    type="button"
+                    onClick={() => fieldRefs.current[it.field]?.scrollIntoView({ behavior: "smooth", block: "center" })}
+                    className="text-left hover:underline"
+                  >
+                    {FIELD_LABELS[it.field] ?? it.field} — {it.problem}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : (
+          <div className="rounded-md border border-success/30 bg-success/5 px-3 py-2 text-[12px] text-success flex items-center gap-1.5">
+            <CheckCircle2 className="h-3.5 w-3.5" /> В строке нет ошибок и предупреждений.
+          </div>
+        )}
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <Label>receivable_id</Label>
-            <Input value={draft.receivable_id} onChange={(e) => set("receivable_id", e.target.value)} />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Клиент</Label>
-            <Input value={draft.клиент} onChange={(e) => set("клиент", e.target.value)} />
-          </div>
-          <div className="space-y-1.5">
-            <Label>ИНН</Label>
-            <Input value={draft.инн} onChange={(e) => set("инн", e.target.value)} />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Договор</Label>
-            <Input value={draft.договор} onChange={(e) => set("договор", e.target.value)} />
-          </div>
-          <div className="space-y-1.5 sm:col-span-2">
-            <Label>Менеджер</Label>
-            <Input value={draft.менеджер} onChange={(e) => set("менеджер", e.target.value)} />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Сумма долга, ₽</Label>
-            <Input type="number" inputMode="decimal" value={Number.isFinite(draft.сумма_долга) ? draft.сумма_долга : 0}
+          <Field name="receivable_id" label="ID дебиторки">{(cls, ref) => (
+            <Input ref={ref as React.Ref<HTMLInputElement>} className={cls} value={draft.receivable_id} onChange={(e) => set("receivable_id", e.target.value)} />
+          )}</Field>
+          <Field name="клиент" label="Клиент">{(cls, ref) => (
+            <Input ref={ref as React.Ref<HTMLInputElement>} className={cls} value={draft.клиент} onChange={(e) => set("клиент", e.target.value)} />
+          )}</Field>
+          <Field name="инн" label="ИНН">{(cls, ref) => (
+            <Input ref={ref as React.Ref<HTMLInputElement>} className={cls} value={draft.инн} onChange={(e) => set("инн", e.target.value)} />
+          )}</Field>
+          <Field name="договор" label="Договор">{(cls, ref) => (
+            <Input ref={ref as React.Ref<HTMLInputElement>} className={cls} value={draft.договор} onChange={(e) => set("договор", e.target.value)} />
+          )}</Field>
+          <Field name="менеджер" label="Менеджер" full>{(cls, ref) => (
+            <Input ref={ref as React.Ref<HTMLInputElement>} className={cls} value={draft.менеджер} onChange={(e) => set("менеджер", e.target.value)} />
+          )}</Field>
+          <Field name="сумма_долга" label="Сумма долга, ₽">{(cls, ref) => (
+            <Input ref={ref as React.Ref<HTMLInputElement>} className={cls} type="number" inputMode="decimal"
+              value={Number.isFinite(draft.сумма_долга) ? draft.сумма_долга : 0}
               onChange={(e) => set("сумма_долга", Number(e.target.value) || 0)} />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Сумма просрочки, ₽</Label>
-            <Input type="number" inputMode="decimal" value={Number.isFinite(draft.сумма_просрочки) ? draft.сумма_просрочки : 0}
+          )}</Field>
+          <Field name="сумма_просрочки" label="Сумма просрочки, ₽">{(cls, ref) => (
+            <Input ref={ref as React.Ref<HTMLInputElement>} className={cls} type="number" inputMode="decimal"
+              value={Number.isFinite(draft.сумма_просрочки) ? draft.сумма_просрочки : 0}
               onChange={(e) => set("сумма_просрочки", Number(e.target.value) || 0)} />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Дата возникновения</Label>
-            <Input type="date" value={toIsoDate(draft.дата_возникновения)}
+          )}</Field>
+          <Field name="дата_возникновения" label="Дата возникновения">{(cls, ref) => (
+            <Input ref={ref as React.Ref<HTMLInputElement>} className={cls} type="date"
+              value={toIsoDate(draft.дата_возникновения)}
               onChange={(e) => set("дата_возникновения", fromIsoDate(e.target.value))} />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Дата плановой оплаты</Label>
-            <Input type="date" value={toIsoDate(draft.дата_плановой_оплаты)}
+          )}</Field>
+          <Field name="дата_плановой_оплаты" label="Дата плановой оплаты">{(cls, ref) => (
+            <Input ref={ref as React.Ref<HTMLInputElement>} className={cls} type="date"
+              value={toIsoDate(draft.дата_плановой_оплаты)}
               onChange={(e) => set("дата_плановой_оплаты", fromIsoDate(e.target.value))} />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Дней просрочки</Label>
-            <Input type="number" inputMode="numeric" value={Number.isFinite(draft.дней_просрочки) ? draft.дней_просрочки : 0}
+          )}</Field>
+          <Field name="дней_просрочки" label="Дней просрочки">{(cls, ref) => (
+            <Input ref={ref as React.Ref<HTMLInputElement>} className={cls} type="number" inputMode="numeric"
+              value={Number.isFinite(draft.дней_просрочки) ? draft.дней_просрочки : 0}
               onChange={(e) => set("дней_просрочки", Number(e.target.value) || 0)} />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Статус оплаты</Label>
+          )}</Field>
+          <Field name="статус_оплаты" label="Статус оплаты">{(cls, ref) => (
             <select
+              ref={ref as React.Ref<HTMLSelectElement>}
               value={draft.статус_оплаты}
               onChange={(e) => set("статус_оплаты", e.target.value)}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              className={cn(
+                "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                cls,
+              )}
             >
               <option value="">— выберите —</option>
               {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
-          </div>
-          <div className="space-y-1.5 sm:col-span-2">
-            <Label>Комментарий</Label>
-            <Input value={draft.комментарий} onChange={(e) => set("комментарий", e.target.value)} />
-          </div>
+          )}</Field>
+          <Field name="комментарий" label="Комментарий" full>{(cls, ref) => (
+            <Input ref={ref as React.Ref<HTMLInputElement>} className={cls} value={draft.комментарий} onChange={(e) => set("комментарий", e.target.value)} />
+          )}</Field>
         </div>
 
         <DialogFooter className="gap-2">
