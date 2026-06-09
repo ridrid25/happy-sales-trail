@@ -658,10 +658,13 @@ export default function Import1C() {
 
 // ====== Sub-components ======
 
-function RowsPreview({ rows }: { rows: ReceivableRow[] }) {
+function RowsPreview({ rows, fixedRows }: { rows: ReceivableRow[]; fixedRows: Set<number> }) {
   if (rows.length === 0) {
     return <div className="text-[12px] text-muted-foreground px-3 py-4 rounded-md border border-dashed border-border">В файле нет строк данных.</div>;
   }
+  const fixedBadge = (
+    <Badge className="bg-success/15 text-success border-success/30"><Wrench className="h-3 w-3" /> исправлено</Badge>
+  );
   return (
     <>
       {/* Mobile: compact cards */}
@@ -670,7 +673,10 @@ function RowsPreview({ rows }: { rows: ReceivableRow[] }) {
           <div key={`${r.rowNum}-${r.receivable_id}`} className="rounded-md border border-border bg-card px-3 py-2 text-[12px]">
             <div className="flex items-center justify-between gap-2 mb-1">
               <div className="font-medium truncate">{r.клиент || <span className="text-muted-foreground">— клиент —</span>}</div>
-              <Badge className="border-border text-muted-foreground">#{r.rowNum}</Badge>
+              <div className="flex items-center gap-1.5 shrink-0">
+                {fixedRows.has(r.rowNum) && fixedBadge}
+                <Badge className="border-border text-muted-foreground">#{r.rowNum}</Badge>
+              </div>
             </div>
             <div className="text-muted-foreground">{r.менеджер || "— менеджер —"} · ИНН {r.инн || "—"}</div>
             <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 mt-1">
@@ -697,11 +703,12 @@ function RowsPreview({ rows }: { rows: ReceivableRow[] }) {
               <th className="text-right px-2 py-1.5">Дней</th>
               <th className="text-right px-2 py-1.5">Стоимость</th>
               <th className="text-left px-2 py-1.5">Статус</th>
+              <th className="text-left px-2 py-1.5"></th>
             </tr>
           </thead>
           <tbody>
             {rows.map((r) => (
-              <tr key={`${r.rowNum}-${r.receivable_id}`} className="border-t border-border">
+              <tr key={`${r.rowNum}-${r.receivable_id}`} className={cn("border-t border-border", fixedRows.has(r.rowNum) && "bg-success/5")}>
                 <td className="px-2 py-1.5 text-muted-foreground">{r.rowNum}</td>
                 <td className="px-2 py-1.5 truncate max-w-[180px]">{r.клиент || "—"}</td>
                 <td className="px-2 py-1.5 truncate max-w-[150px]">{r.менеджер || "—"}</td>
@@ -710,6 +717,7 @@ function RowsPreview({ rows }: { rows: ReceivableRow[] }) {
                 <td className="px-2 py-1.5 text-right num">{r.дней_просрочки}</td>
                 <td className="px-2 py-1.5 text-right num">{fmtShort(r.стоимость_просрочки)}</td>
                 <td className="px-2 py-1.5">{r.статус_оплаты || "—"}</td>
+                <td className="px-2 py-1.5">{fixedRows.has(r.rowNum) && fixedBadge}</td>
               </tr>
             ))}
           </tbody>
@@ -719,7 +727,7 @@ function RowsPreview({ rows }: { rows: ReceivableRow[] }) {
   );
 }
 
-function IssueList({ items, tone, empty }: { items: Issue[]; tone: "destructive" | "warning"; empty: string }) {
+function IssueList({ items, tone, empty, onFix }: { items: Issue[]; tone: "destructive" | "warning"; empty: string; onFix?: (rowNum: number) => void }) {
   if (items.length === 0) {
     return <div className="text-[12px] text-muted-foreground px-3 py-2">{empty}</div>;
   }
@@ -729,14 +737,144 @@ function IssueList({ items, tone, empty }: { items: Issue[]; tone: "destructive"
     <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
       {items.map((it, i) => (
         <div key={i} className={cn("rounded-md border bg-card px-3 py-2 text-[12px]", border)}>
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
             <div className={cn("font-medium", accent)}>Строка {it.row}</div>
             <Badge className="border-border text-muted-foreground font-mono">{it.field}</Badge>
           </div>
           <div className="mt-1 text-foreground/90">Проблема: {it.problem}</div>
           <div className="text-muted-foreground">Рекомендация: {it.hint}</div>
+          {onFix && (
+            <div className="mt-2 flex justify-end">
+              <button
+                onClick={() => onFix(it.row)}
+                className="inline-flex items-center gap-1 text-[12px] px-2 py-1 rounded-md border border-border bg-card hover:bg-muted"
+              >
+                <Wrench className="h-3.5 w-3.5" /> Исправить
+              </button>
+            </div>
+          )}
         </div>
       ))}
     </div>
   );
 }
+
+const STATUS_OPTIONS = ["оплачено", "частично", "ожидает", "просрочено", "проблемная"] as const;
+
+// dd.mm.yyyy <-> yyyy-mm-dd for native <input type="date">
+function toIsoDate(s: string): string {
+  if (!s) return "";
+  const m = s.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+  if (m) return `${m[3]}-${m[2]}-${m[1]}`;
+  const m2 = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m2 ? s : "";
+}
+function fromIsoDate(s: string): string {
+  if (!s) return "";
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? `${m[3]}.${m[2]}.${m[1]}` : s;
+}
+
+function EditRowDialog({
+  row, onCancel, onSave,
+}: { row: ReceivableRow | null; onCancel: () => void; onSave: (r: ReceivableRow) => void }) {
+  const [draft, setDraft] = useState<ReceivableRow | null>(null);
+
+  // Sync draft when row changes
+  useMemo(() => { setDraft(row ? { ...row } : null); }, [row]);
+
+  if (!row || !draft) {
+    return (
+      <Dialog open={false} onOpenChange={(o) => { if (!o) onCancel(); }}>
+        <DialogContent />
+      </Dialog>
+    );
+  }
+
+  const set = <K extends keyof ReceivableRow>(k: K, v: ReceivableRow[K]) =>
+    setDraft((d) => (d ? { ...d, [k]: v } : d));
+
+  return (
+    <Dialog open={!!row} onOpenChange={(o) => { if (!o) onCancel(); }}>
+      <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Редактирование строки импорта · #{draft.rowNum}</DialogTitle>
+          <DialogDescription>
+            Исправления применяются только к импортируемому файлу в этом приложении. Данные в 1С не изменяются.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label>receivable_id</Label>
+            <Input value={draft.receivable_id} onChange={(e) => set("receivable_id", e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Клиент</Label>
+            <Input value={draft.клиент} onChange={(e) => set("клиент", e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>ИНН</Label>
+            <Input value={draft.инн} onChange={(e) => set("инн", e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Договор</Label>
+            <Input value={draft.договор} onChange={(e) => set("договор", e.target.value)} />
+          </div>
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label>Менеджер</Label>
+            <Input value={draft.менеджер} onChange={(e) => set("менеджер", e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Сумма долга, ₽</Label>
+            <Input type="number" inputMode="decimal" value={Number.isFinite(draft.сумма_долга) ? draft.сумма_долга : 0}
+              onChange={(e) => set("сумма_долга", Number(e.target.value) || 0)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Сумма просрочки, ₽</Label>
+            <Input type="number" inputMode="decimal" value={Number.isFinite(draft.сумма_просрочки) ? draft.сумма_просрочки : 0}
+              onChange={(e) => set("сумма_просрочки", Number(e.target.value) || 0)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Дата возникновения</Label>
+            <Input type="date" value={toIsoDate(draft.дата_возникновения)}
+              onChange={(e) => set("дата_возникновения", fromIsoDate(e.target.value))} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Дата плановой оплаты</Label>
+            <Input type="date" value={toIsoDate(draft.дата_плановой_оплаты)}
+              onChange={(e) => set("дата_плановой_оплаты", fromIsoDate(e.target.value))} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Дней просрочки</Label>
+            <Input type="number" inputMode="numeric" value={Number.isFinite(draft.дней_просрочки) ? draft.дней_просрочки : 0}
+              onChange={(e) => set("дней_просрочки", Number(e.target.value) || 0)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Статус оплаты</Label>
+            <select
+              value={draft.статус_оплаты}
+              onChange={(e) => set("статус_оплаты", e.target.value)}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            >
+              <option value="">— выберите —</option>
+              {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label>Комментарий</Label>
+            <Input value={draft.комментарий} onChange={(e) => set("комментарий", e.target.value)} />
+          </div>
+        </div>
+
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={onCancel}>Отмена</Button>
+          <Button onClick={() => onSave(draft)}>
+            <Wrench className="h-4 w-4" /> Сохранить и проверить
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
