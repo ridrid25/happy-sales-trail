@@ -42,16 +42,13 @@ const navGroups: { title: string; items: { to: string; label: string; icon: any;
 
 const nav = navGroups.flatMap((g) => g.items);
 
-type QuickTab =
-  | { kind: "scroll"; id: string; label: string; section?: string }
-  | { kind: "menu"; label: string };
+type QuickTab = { id: string; label: string; section: string };
 
 const quickTabs: QuickTab[] = [
-  { kind: "scroll", id: "dashboard", label: "Обзор" },
-  { kind: "scroll", id: "money", label: "Деньги", section: "section-money" },
-  { kind: "scroll", id: "risks", label: "Риски", section: "section-risks" },
-  { kind: "scroll", id: "actions", label: "Дела", section: "section-actions" },
-  { kind: "menu", label: "Меню" },
+  { id: "status", label: "Статус", section: "section-status" },
+  { id: "money", label: "Деньги", section: "section-money" },
+  { id: "actions", label: "Действия", section: "section-actions" },
+  { id: "risks", label: "Риски", section: "section-risks" },
 ];
 
 
