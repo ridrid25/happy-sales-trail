@@ -165,26 +165,35 @@ export default function AppLayout() {
 
         {/* Sidebar desktop */}
         <aside className="hidden lg:flex flex-col w-60 shrink-0 bg-sidebar text-sidebar-foreground border-r border-sidebar-border min-h-[calc(100vh-4rem)] sticky top-16">
-          <nav className="p-3 space-y-0.5 flex-1">
-            {nav.map((item) => {
-              const Icon = item.icon;
-              return (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  end={item.end}
-                  className={({ isActive }) => cn(
-                    "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors",
-                    isActive
-                      ? "bg-sidebar-accent text-white font-medium"
-                      : "text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-white"
-                  )}
-                >
-                  <Icon className="h-4 w-4 shrink-0" />
-                  <span>{item.label}</span>
-                </NavLink>
-              );
-            })}
+          <nav className="p-3 space-y-3 flex-1 overflow-y-auto">
+            {navGroups.map((group) => (
+              <div key={group.title}>
+                <div className="px-3 pb-1 text-[10px] uppercase tracking-wider text-sidebar-foreground/50 font-semibold">
+                  {group.title}
+                </div>
+                <div className="space-y-0.5">
+                  {group.items.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <NavLink
+                        key={item.to}
+                        to={item.to}
+                        end={item.end}
+                        className={({ isActive }) => cn(
+                          "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors",
+                          isActive
+                            ? "bg-sidebar-accent text-white font-medium"
+                            : "text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-white"
+                        )}
+                      >
+                        <Icon className="h-4 w-4 shrink-0" />
+                        <span>{item.label}</span>
+                      </NavLink>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </nav>
           <div className="p-4 border-t border-sidebar-border text-[11px] text-sidebar-foreground/60">
             Демо-данные · Май 2026
@@ -195,28 +204,38 @@ export default function AppLayout() {
         {open && (
           <div className="lg:hidden fixed inset-0 z-30 top-16" onClick={() => setOpen(false)}>
             <div className="absolute inset-0 bg-black/40" />
-            <aside className="absolute left-0 top-0 bottom-0 w-72 bg-sidebar text-sidebar-foreground p-3 overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-              {nav.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <NavLink
-                    key={item.to}
-                    to={item.to}
-                    end={item.end}
-                    onClick={() => setOpen(false)}
-                    className={({ isActive }) => cn(
-                      "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm",
-                      isActive ? "bg-sidebar-accent text-white font-medium" : "hover:bg-sidebar-accent/60"
-                    )}
-                  >
-                    <Icon className="h-4 w-4" />
-                    {item.label}
-                  </NavLink>
-                );
-              })}
+            <aside className="absolute left-0 top-0 bottom-0 w-72 bg-sidebar text-sidebar-foreground p-3 overflow-y-auto space-y-3" onClick={(e) => e.stopPropagation()}>
+              {navGroups.map((group) => (
+                <div key={group.title}>
+                  <div className="px-3 pb-1 text-[10px] uppercase tracking-wider text-sidebar-foreground/50 font-semibold">
+                    {group.title}
+                  </div>
+                  <div className="space-y-0.5">
+                    {group.items.map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <NavLink
+                          key={item.to}
+                          to={item.to}
+                          end={item.end}
+                          onClick={() => setOpen(false)}
+                          className={({ isActive }) => cn(
+                            "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm",
+                            isActive ? "bg-sidebar-accent text-white font-medium" : "hover:bg-sidebar-accent/60"
+                          )}
+                        >
+                          <Icon className="h-4 w-4" />
+                          {item.label}
+                        </NavLink>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </aside>
           </div>
         )}
+
 
         {/* Main */}
         <main className="flex-1 min-w-0">
