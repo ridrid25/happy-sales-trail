@@ -6,6 +6,7 @@ import {
   Database, ArrowRight, History, Info, Sparkles, Wrench,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   ALL_FIELDS, REQUIRED_FIELDS, buildTemplateCSV, parseFile,
   validateRecords, revalidate, summarize, type ParseResult, type Issue, type ReceivableRow,
@@ -143,10 +144,63 @@ type AppliedSummary = {
   clientsOverdue: number;
 };
 
+function ImportStepper({
+  loaded, checked, fixed, applied, onUpload,
+}: { loaded: boolean; checked: boolean; fixed: boolean; applied: boolean; onUpload: () => void }) {
+  const steps = [
+    { n: 1, label: "Загрузить", hint: "файл дебиторки", done: loaded, active: !loaded },
+    { n: 2, label: "Проверить", hint: "качество данных", done: checked, active: loaded && !checked },
+    { n: 3, label: "Исправить", hint: "ошибки в строках", done: loaded && fixed, active: loaded && !fixed },
+    { n: 4, label: "Применить", hint: "к дашборду", done: applied, active: loaded && fixed && !applied },
+  ];
+  return (
+    <div className="mb-4 rounded-lg border border-border bg-card shadow-card overflow-hidden">
+      <div className="flex items-center justify-between gap-2 px-4 pt-3 pb-2">
+        <div className="text-[11px] uppercase tracking-wider font-semibold text-foreground/80">Импорт за 4 шага</div>
+        {!loaded && (
+          <button onClick={onUpload} className="text-[12px] text-accent inline-flex items-center gap-1 hover:underline">
+            <Upload className="h-3.5 w-3.5" /> начать
+          </button>
+        )}
+      </div>
+      <div className="px-2 pb-3 overflow-x-auto scrollbar-thin">
+        <div className="flex items-stretch gap-2 min-w-max sm:min-w-0 sm:grid sm:grid-cols-4">
+          {steps.map((s) => {
+            const tone = s.done ? "success" : s.active ? "accent" : "muted";
+            const ring = tone === "success" ? "border-success/40 bg-success/5"
+              : tone === "accent" ? "border-accent/40 bg-accent/5"
+              : "border-border bg-muted/30";
+            const dot = tone === "success" ? "bg-success text-success-foreground"
+              : tone === "accent" ? "bg-accent text-accent-foreground"
+              : "bg-muted text-muted-foreground";
+            const txt = tone === "success" ? "text-success"
+              : tone === "accent" ? "text-accent" : "text-muted-foreground";
+            return (
+              <div key={s.n} className={cn("flex items-center gap-2 rounded-md border px-2.5 py-2 min-w-[150px]", ring)}>
+                <div className={cn("h-6 w-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0", dot)}>
+                  {s.done ? <CheckCircle2 className="h-3.5 w-3.5" /> : s.n}
+                </div>
+                <div className="min-w-0">
+                  <div className={cn("text-[12.5px] font-semibold leading-tight", txt)}>{s.label}</div>
+                  <div className="text-[10.5px] text-muted-foreground leading-tight truncate">{s.hint}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+
 export default function Import1C() {
+  const isMobile = useIsMobile();
   const [openType, setOpenType] = useState<FileType | null>("receivables");
   const [showErr, setShowErr] = useState(true);
   const [showWarn, setShowWarn] = useState(false);
+  const [showTechMobile, setShowTechMobile] = useState(false);
 
   // Receivables import state
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -312,6 +366,17 @@ export default function Import1C() {
         </div>
       )}
 
+      {/* 4-step stepper */}
+      <ImportStepper
+        loaded={!!result}
+        checked={!!result}
+        fixed={!!result && result.errors.length === 0}
+        applied={!!applied}
+        onUpload={() => fileInputRef.current?.click()}
+      />
+
+
+
       {/* Last import summary */}
       <Card
         title="Последний импорт"
@@ -438,8 +503,24 @@ export default function Import1C() {
         </div>
       )}
 
+      {/* Mobile: toggle for technical blocks */}
+      {isMobile && (
+        <button
+          onClick={() => setShowTechMobile(s => !s)}
+          className="w-full mt-4 flex items-center justify-between gap-2 px-3 py-2.5 rounded-md border border-border bg-card text-[13px] font-medium hover:bg-muted/40"
+        >
+          <span className="inline-flex items-center gap-2">
+            <Info className="h-4 w-4 text-muted-foreground" />
+            Технические блоки · типы файлов, сопоставление, история, безопасность
+          </span>
+          <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform shrink-0", showTechMobile && "rotate-180")} />
+        </button>
+      )}
+
+      <div className={cn(isMobile && !showTechMobile && "hidden")}>
       {/* Supported file types */}
       <div className="mt-4">
+
         <Card title="Поддерживаемые типы файлов" subtitle="MVP: реально работает только «Дебиторка» (CSV/JSON). Остальные — демо-шаблоны.">
           <div className="space-y-2">
             {fileTypes.map((ft) => {
@@ -652,6 +733,9 @@ export default function Import1C() {
           </div>
         </Card>
       </div>
+      </div>
+
+
 
       <EditRowDialog
         row={editingRow}
