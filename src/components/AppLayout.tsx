@@ -118,25 +118,27 @@ export default function AppLayout() {
       {/* Mobile quick-tabs strip — только на главном дашборде */}
       {location.pathname === "/" && (
         <div className="lg:hidden sticky top-16 z-30 bg-background/95 backdrop-blur border-b border-border">
-          <div className="flex items-center gap-1 px-3 py-1.5 overflow-x-auto scrollbar-thin [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {quickTabs.map((t) => {
-              const handleClick = () => {
-                const el = document.getElementById(t.section);
-                if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-              };
-              return (
-                <button
-                  key={t.id}
-                  onClick={handleClick}
-                  className={cn(
-                    "px-3 py-1.5 rounded-full text-[12px] font-medium whitespace-nowrap shrink-0 transition-colors",
-                    "bg-muted/60 text-foreground/80 hover:bg-muted"
-                  )}
-                >
-                  {t.label}
-                </button>
-              );
-            })}
+          <div className="px-3 py-2">
+            <div className="grid grid-cols-4 gap-1 p-1 rounded-lg bg-muted/60 border border-border">
+              {quickTabs.map((t) => {
+                const handleClick = () => {
+                  const el = document.getElementById(t.section);
+                  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+                };
+                return (
+                  <button
+                    key={t.id}
+                    onClick={handleClick}
+                    className={cn(
+                      "h-8 w-full rounded-md text-[12px] font-medium text-center transition-colors",
+                      "text-foreground/80 hover:bg-background/70 active:bg-accent active:text-accent-foreground"
+                    )}
+                  >
+                    {t.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}
