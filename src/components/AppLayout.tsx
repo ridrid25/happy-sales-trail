@@ -61,6 +61,8 @@ export default function AppLayout() {
   const [open, setOpen] = useState(false);
   const [role, setRole] = useState("Собственник");
   const location = useLocation();
+  const navigate = useNavigate();
+
   const { theme, toggle } = useTheme();
 
   return (
