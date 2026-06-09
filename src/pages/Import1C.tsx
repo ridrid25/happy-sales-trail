@@ -6,6 +6,7 @@ import {
   Database, ArrowRight, History, Info, Sparkles, Wrench,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   ALL_FIELDS, REQUIRED_FIELDS, buildTemplateCSV, parseFile,
   validateRecords, revalidate, summarize, type ParseResult, type Issue, type ReceivableRow,
