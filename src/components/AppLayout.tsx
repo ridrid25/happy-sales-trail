@@ -47,10 +47,10 @@ type QuickTab =
   | { kind: "menu"; label: string };
 
 const quickTabs: QuickTab[] = [
-  { kind: "scroll", id: "dashboard", label: "Дашборд" },
+  { kind: "scroll", id: "dashboard", label: "Обзор" },
   { kind: "scroll", id: "money", label: "Деньги", section: "section-money" },
   { kind: "scroll", id: "risks", label: "Риски", section: "section-risks" },
-  { kind: "scroll", id: "actions", label: "Действия", section: "section-actions" },
+  { kind: "scroll", id: "actions", label: "Дела", section: "section-actions" },
   { kind: "menu", label: "Меню" },
 ];
 
@@ -120,7 +120,7 @@ export default function AppLayout() {
 
       {/* Mobile quick-tabs strip */}
       <div className="lg:hidden sticky top-16 z-30 bg-background/95 backdrop-blur border-b border-border">
-        <div className="flex items-center gap-1 px-2 py-1.5 overflow-x-auto scrollbar-thin">
+        <div className="flex items-center gap-1 px-3 py-1.5 overflow-x-auto scrollbar-thin [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {quickTabs.map((t) => {
             const onDashboard = location.pathname === "/";
             const handleClick = () => {
