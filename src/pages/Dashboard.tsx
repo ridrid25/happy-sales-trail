@@ -76,7 +76,9 @@ function MobileView({ paidPct, unpaidPct }: { paidPct: number; unpaidPct: number
   return (
     <div className="space-y-3">
       {/* 1. Деньги — компактные строки */}
-      <Card id="section-money" className="!p-0 overflow-hidden border-l-4 border-l-accent scroll-mt-32">
+      <div id="section-money" className="scroll-mt-32">
+      <Card className="!p-0 overflow-hidden border-l-4 border-l-accent">
+
         <div className="flex items-center gap-2 px-4 pt-3 pb-2">
           <Wallet className="h-4 w-4 text-accent" />
           <div className="text-[11px] uppercase tracking-wider font-semibold text-foreground/80">Деньги</div>
