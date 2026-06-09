@@ -296,7 +296,7 @@ export function RiskBlock({ mobile = false }: { mobile?: boolean }) {
       </Section>
 
       <Section
-        defaultOpen
+        defaultOpen={!mobile}
         title="Что делать первым"
         icon={<ListChecks className="h-4 w-4" />}
         summary={`${priorityActions.length} действий по приоритету влияния на деньги`}
