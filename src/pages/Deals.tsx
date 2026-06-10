@@ -261,8 +261,6 @@ function DetailPanel({
     ? { label: "Риск оплаты", reason: "Клиенты уже имеют просрочку или долг", color: "hsl(var(--destructive))", bg: "bg-destructive/5", border: "border-destructive/30" }
     : { label: zoneMeta[filter].label, reason: zoneMeta[filter].reason, color: zoneMeta[filter].color, bg: zoneMeta[filter].bg, border: zoneMeta[filter].border };
 
-  const sum = deals.reduce((s, d) => s + d.amount, 0) + (shownAll ? 0 : 0);
-  // Лучше показать общую сумму по всему фильтру:
   const totalSum = (filter === "payment" ? paymentRiskDeals : activeDeals.filter(d => zoneOf(d) === filter))
     .reduce((s, d) => s + d.amount, 0);
 
