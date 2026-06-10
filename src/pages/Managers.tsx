@@ -434,13 +434,6 @@ export default function Managers() {
         <h2 className="font-display text-base lg:text-lg font-semibold mb-3">Взаимосвязи показателей</h2>
         <div className="grid gap-2 lg:gap-3 lg:grid-cols-2">
           <RelationCard
-            icon={<TrendingDown className="h-4 w-4 text-warning" />}
-            title="Выручка vs маржа"
-            insight={`${summary.lowMargin} менеджеров продают ниже порога маржи ${MIN_MARGIN_PCT}%`}
-            people={enriched.filter(m => m.marginPct < MIN_MARGIN_PCT).slice(0, 3)}
-            action="ограничить скидки ниже минимальной маржи"
-          />
-          <RelationCard
             icon={<ShieldAlert className="h-4 w-4 text-destructive" />}
             title="Выручка vs оплаченная выручка"
             insight="Высокие продажи не всегда превращаются в деньги"
