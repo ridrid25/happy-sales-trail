@@ -246,7 +246,7 @@ export default function Deals() {
                   stroke={zoneMeta[z].color}
                   onClick={(p: { id?: string; x?: number; y?: number; amount?: number } | undefined) => {
                     if (!isMobile || !p?.id) return;
-                    setSelectedPoint({ id: p.id, marginPct: p.x ?? 0, idle: p.y ?? 0, amount: p.amount ?? 0 });
+                    setSelectedPoint({ id: p.id, marginPct: Math.round(p.x ?? 0), idle: Math.round(p.y ?? 0), amount: p.amount ?? 0 });
                   }}
                 />
               ))}
