@@ -126,6 +126,10 @@ export default function Deals() {
   const filterRowRef = useRef<HTMLDivElement>(null);
   const detailHeaderRef = useRef<HTMLButtonElement>(null);
   const detailGroupRef = useRef<HTMLDivElement>(null);
+  const filterTriggerRefs = useRef<Partial<Record<FilterKey, HTMLButtonElement | null>>>({});
+  const detailTriggerRefs = useRef<Partial<Record<FilterKey, HTMLButtonElement | null>>>({});
+  const lastFilterTrigger = useRef<HTMLElement | null>(null);
+  const lastDetailTrigger = useRef<HTMLElement | null>(null);
 
   const lowMargin = activeDeals.filter(d => d.marginPct < MARGIN_THRESHOLD).length;
   const stuckCount = activeDeals.filter(d => daysIdle(d) > IDLE_THRESHOLD).length;
@@ -157,15 +161,22 @@ export default function Deals() {
   };
 
   const pickFilter = (key: FilterKey) => {
+    // toggle off if user re-taps the same active button
+    if (active === key) {
+      closePanel();
+      return;
+    }
+    lastFilterTrigger.current = filterTriggerRefs.current[key] ?? filterRowRef.current;
     setShownAll(false);
     setActive(key);
     scrollTo(panelRef.current);
   };
 
   const closePanel = () => {
+    const back = lastFilterTrigger.current ?? filterRowRef.current;
     setActive(null);
     setShownAll(false);
-    scrollTo(filterRowRef.current);
+    scrollTo(back);
   };
 
   const toggleDetail = () => {
@@ -174,22 +185,26 @@ export default function Deals() {
       if (!next) {
         setDetailGroup(null);
         setDetailShownAll(false);
+        scrollTo(detailHeaderRef.current);
+      } else {
+        scrollTo(detailHeaderRef.current);
       }
-      scrollTo(detailHeaderRef.current);
       return next;
     });
   };
 
   const pickDetailGroup = (key: FilterKey) => {
+    lastDetailTrigger.current = detailTriggerRefs.current[key] ?? detailHeaderRef.current;
     setDetailShownAll(false);
     setDetailGroup(key);
     scrollTo(detailGroupRef.current);
   };
 
   const closeDetailGroup = () => {
+    const back = lastDetailTrigger.current ?? detailHeaderRef.current;
     setDetailGroup(null);
     setDetailShownAll(false);
-    scrollTo(detailHeaderRef.current);
+    scrollTo(back);
   };
 
   return (
@@ -307,6 +322,7 @@ export default function Deals() {
           return (
             <button
               key={k}
+              ref={el => { filterTriggerRefs.current[k] = el; }}
               onClick={() => pickFilter(k)}
               className={cn(
                 "text-xs px-2.5 py-2 rounded-md border transition-colors flex items-center justify-between gap-2",
@@ -374,6 +390,7 @@ export default function Deals() {
                   return (
                     <div key={k}>
                       <button
+                        ref={el => { detailTriggerRefs.current[k] = el; }}
                         onClick={() => isOpen ? closeDetailGroup() : pickDetailGroup(k)}
                         className={cn(
                           "w-full text-left rounded-lg border px-3 py-2.5 flex items-center justify-between gap-2 transition-colors",
