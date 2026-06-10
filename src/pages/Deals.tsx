@@ -404,14 +404,14 @@ export default function Deals() {
   );
 }
 
-type PointPayload = { id?: string; x?: number; y?: number; amount?: number };
+type PointPayload = { x?: number; y?: number; amount?: number };
 function PointTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: PointPayload }> }) {
   if (!active || !payload?.length) return null;
   const p = payload[0].payload;
   const margin = Math.round(p.x ?? 0);
   const idle = Math.round(p.y ?? 0);
   const amount = p.amount ?? 0;
-  const id = (p.id ?? "").toUpperCase();
+  const zone = pointZoneLabel(margin, idle);
   return (
     <div
       className="rounded-[10px] shadow-elevated px-3 py-2.5 text-[12px] leading-tight max-w-[220px]"
@@ -422,17 +422,17 @@ function PointTooltip({ active, payload }: { active?: boolean; payload?: Array<{
       }}
     >
       <div className="font-semibold uppercase tracking-wide mb-1.5" style={{ color: "hsl(0 0% 100%)" }}>
-        Сделка {id}
+        Зона: {zone}
       </div>
       <div className="space-y-1 num">
         <Row label="Сумма" value={`${formatShort(amount)} ₽`} />
         <Row label="Маржа" value={`${margin}%`} danger={margin < MARGIN_THRESHOLD} />
         <Row label="Без движения" value={`${idle} дн`} danger={idle > IDLE_THRESHOLD} />
-        <Row label="Риск" value={pointZoneLabel(margin, idle)} />
       </div>
     </div>
   );
 }
+
 
 function Row({ label, value, danger }: { label: string; value: string; danger?: boolean }) {
   return (
