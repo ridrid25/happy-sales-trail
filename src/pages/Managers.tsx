@@ -300,8 +300,12 @@ export default function Managers() {
                   <div className="text-[11px] text-muted-foreground">Выбрано</div>
                   <div className={cn("font-display font-semibold text-sm", meta.tone)}>{meta.title}</div>
                   <div className="text-[11px] text-muted-foreground mt-0.5">
-                    {g.items.length} {g.items.length === 1 ? "менеджер" : "менеджеров"}
-                    {g.marginLoss > 0 && <> · потери маржи <span className="num text-destructive">{formatShort(g.marginLoss)} ₽</span></>}
+                    {g.items.length} {g.items.length === 1 ? "менеджер" : "менеджеров"} · <span className="num text-foreground">{formatShort(g.sales)} ₽</span>
+                    {teamSales > 0 && <> · <span className="num text-foreground">{Math.round(g.sales / teamSales * 100)}%</span> продаж команды</>}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">
+                    Маржа <span className={cn("num", g.avgMargin < MIN_MARGIN_PCT ? "text-destructive" : "text-foreground")}>{g.avgMargin}%</span>
+                    {g.marginLoss > 0 && <> · потери <span className="num text-destructive">{formatShort(g.marginLoss)} ₽</span></>}
                   </div>
                 </div>
                 <button onClick={() => { setVmOpen(null); setVmShowAll(false); }} className="text-xs text-muted-foreground hover:text-foreground shrink-0">Закрыть</button>
