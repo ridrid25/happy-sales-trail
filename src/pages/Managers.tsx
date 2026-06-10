@@ -114,10 +114,17 @@ export default function Managers() {
   const teamPlan = useMemo(() => enriched.reduce((s, m) => s + m.plan, 0), [enriched]);
   const [vmOpen, setVmOpen] = useState<VMQuad | null>(null);
   const [vmShowAll, setVmShowAll] = useState(false);
-  const [summaryOpen, setSummaryOpen] = useState(false);
-  const [quadOpen, setQuadOpen] = useState(false);
-  const [segOpen, setSegOpen] = useState(false);
-  const [relOpen, setRelOpen] = useState(false);
+  // Приоритетные группы
+  type PriorityKey = "loss" | "gap" | "overdue" | "low";
+  const [prioOpen, setPrioOpen] = useState<PriorityKey | null>(null);
+  const [prioShowAll, setPrioShowAll] = useState(false);
+  // Ещё аналитика — один общий блок с переключателем подразделов
+  type MoreKey = "summary" | "quad" | "seg" | "rel" | "all";
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [moreTab, setMoreTab] = useState<MoreKey>("summary");
+  const moreContentRef = useRef<HTMLDivElement>(null);
+  const moreHeaderRef = useRef<HTMLDivElement>(null);
+  const prioContentRef = useRef<HTMLDivElement>(null);
 
   // ============== Сводка команды ==============
   const summary = useMemo(() => {
