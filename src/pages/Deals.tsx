@@ -444,9 +444,35 @@ export default function Deals() {
 
 function PointStat({ label, value, danger }: { label: string; value: string; danger?: boolean }) {
   return (
-    <div className="rounded-md bg-muted/40 px-2 py-1.5">
-      <div className="text-[10px] text-muted-foreground uppercase tracking-wide">{label}</div>
-      <div className={cn("num font-semibold text-[14px] text-foreground", danger && "text-destructive")}>{value}</div>
+    <div className="rounded-md bg-background border border-border px-2 py-1.5 min-w-0">
+      <div className="text-[10px] text-muted-foreground uppercase tracking-wide truncate">{label}</div>
+      <div className={cn("num font-semibold text-[13px] leading-tight text-foreground break-words", danger && "text-destructive")}>{value}</div>
+    </div>
+  );
+}
+
+type PointPayload = { id?: string; x?: number; y?: number; amount?: number };
+function PointTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: PointPayload }> }) {
+  if (!active || !payload?.length) return null;
+  const p = payload[0].payload;
+  const margin = Math.round(p.x ?? 0);
+  const idle = Math.round(p.y ?? 0);
+  const amount = p.amount ?? 0;
+  const id = (p.id ?? "").toUpperCase();
+  return (
+    <div className="rounded-lg border-2 border-foreground/20 bg-card shadow-elevated p-3 min-w-[200px]">
+      <div className="text-[12px] font-semibold uppercase tracking-wide text-foreground mb-2">
+        Сделка {id}
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        <PointStat label="Маржа" value={`${margin}%`} danger={margin < MARGIN_THRESHOLD} />
+        <PointStat label="Без движения" value={`${idle} дн`} danger={idle > IDLE_THRESHOLD} />
+        <PointStat label="Сумма" value={`${formatShort(amount)} ₽`} />
+      </div>
+      <div className="text-[12px] text-foreground mt-2">
+        <span className="text-muted-foreground">Риск: </span>
+        <span className="font-medium">{pointZoneLabel(margin, idle)}</span>
+      </div>
     </div>
   );
 }
