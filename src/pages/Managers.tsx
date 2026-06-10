@@ -804,6 +804,10 @@ export default function Managers() {
           })()}
         </div>
       </section>
+    </>
+  );
+}
+
 
 
 // ============== Вспомогательные ==============
