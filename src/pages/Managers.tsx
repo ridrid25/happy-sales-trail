@@ -183,27 +183,17 @@ export default function Managers() {
         subtitle="Кто создаёт риск по марже и деньгам — и кого разобрать первым"
       />
 
-      {/* 1. Сводка команды */}
-      <section className="mb-5">
-        <h2 className="font-display text-base lg:text-lg font-semibold mb-3">Сводка команды</h2>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-3">
-          <SummaryTile label="Всего менеджеров" value={summary.total} />
-          <SummaryTile label="В норме" value={summary.norm} tone="success" />
-          <SummaryTile label="Зона контроля" value={summary.ctrl} tone="warning" />
-          <SummaryTile label="Критичная зона" value={summary.crit} tone="danger" />
-          <SummaryTile label="Ниже минимальной маржи" value={summary.lowMargin} hint={`порог ${MIN_MARGIN_PCT}%`} tone="warning" />
-          <SummaryTile label="Высокая просрочка" value={summary.highOverdue} hint={`≥ ${formatShort(HIGH_OVERDUE)} ₽`} tone="danger" />
-          <SummaryTile label="Потери маржи" value={`${formatShort(summary.marginLoss)} ₽`} hint="из-за сделок ниже порога" tone="danger" />
-          <SummaryTile
-            label="Формируют просрочку"
-            value={`${summary.topCount} из ${summary.total}`}
-            hint={`${summary.topShare}% всей просрочки`}
-            tone="danger"
-          />
-        </div>
-      </section>
+      {/* Короткая строка-сводка */}
+      <div className="mb-4 -mt-2 text-[12px] lg:text-sm text-muted-foreground leading-snug">
+        <span className="font-medium text-foreground num">{summary.total}</span> менеджеров
+        {summary.lowMargin > 0 && <> · <span className="text-destructive num">{summary.lowMargin}</span> ниже маржи</>}
+        {summary.marginLoss > 0 && <> · потери маржи <span className="text-destructive num">{formatShort(summary.marginLoss)} ₽</span></>}
+        {summary.topCount > 0 && summary.topShare > 0 && (
+          <> · <span className="num">{summary.topCount}</span> формируют <span className="num">{summary.topShare}%</span> просрочки</>
+        )}
+      </div>
 
-      {/* 2. Матрица Объём × Маржа */}
+      {/* 1. Матрица Объём × Маржа — главный верхний блок */}
       <section className="mb-5">
         <div className="flex items-baseline justify-between mb-1">
           <h2 className="font-display text-base lg:text-lg font-semibold">Объём продаж × Маржа</h2>
@@ -216,6 +206,7 @@ export default function Managers() {
           {vmGroups.map(g => {
             const meta = VM_META[g.key];
             const isOpen = vmOpen === g.key;
+            const isCheap = g.key === "vmCheap" && g.items.length > 0;
             return (
               <button
                 key={g.key}
@@ -223,9 +214,16 @@ export default function Managers() {
                 onClick={() => setVmOpen(isOpen ? null : g.key)}
                 className={cn(
                   "text-left bg-card rounded-lg border-2 p-3 lg:p-4 shadow-card transition-colors hover:bg-muted/30",
-                  meta.border, meta.bg, isOpen && "ring-2 ring-accent/40"
+                  meta.border, meta.bg,
+                  isCheap && "ring-2 ring-destructive/40 shadow-lg",
+                  isOpen && "ring-2 ring-accent/40"
                 )}
               >
+                {isCheap && (
+                  <div className="mb-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] lg:text-[10px] font-semibold uppercase tracking-wide bg-destructive/15 text-destructive">
+                    <AlertTriangle className="h-2.5 w-2.5" /> Главная зона риска
+                  </div>
+                )}
                 <div className={cn("font-display font-semibold text-sm lg:text-base", meta.tone)}>{meta.title}</div>
                 <div className="text-[10px] lg:text-xs text-muted-foreground mt-0.5 leading-tight">{meta.hint}</div>
                 <div className="mt-2 num font-display text-2xl font-semibold">{g.items.length}</div>
@@ -311,6 +309,37 @@ export default function Managers() {
           );
         })()}
       </section>
+
+      {/* 2. Сводка команды — вторичный блок, свёрнут на mobile */}
+      <section className="mb-5">
+        <button
+          type="button"
+          onClick={() => setSummaryOpen(o => !o)}
+          className="w-full flex items-center justify-between gap-2 mb-3 lg:cursor-default"
+        >
+          <h2 className="font-display text-base lg:text-lg font-semibold">Сводка команды</h2>
+          <span className="lg:hidden text-[11px] text-muted-foreground inline-flex items-center gap-1">
+            {summaryOpen ? "Свернуть" : "Развернуть"}
+            <ChevronDown className={cn("h-3 w-3 transition-transform", summaryOpen && "rotate-180")} />
+          </span>
+        </button>
+        <div className={cn("grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-3", !summaryOpen && "hidden lg:grid")}>
+          <SummaryTile label="Всего менеджеров" value={summary.total} />
+          <SummaryTile label="В норме" value={summary.norm} tone="success" />
+          <SummaryTile label="Зона контроля" value={summary.ctrl} tone="warning" />
+          <SummaryTile label="Критичная зона" value={summary.crit} tone="danger" />
+          <SummaryTile label="Ниже минимальной маржи" value={summary.lowMargin} hint={`порог ${MIN_MARGIN_PCT}%`} tone="warning" />
+          <SummaryTile label="Высокая просрочка" value={summary.highOverdue} hint={`≥ ${formatShort(HIGH_OVERDUE)} ₽`} tone="danger" />
+          <SummaryTile label="Потери маржи" value={`${formatShort(summary.marginLoss)} ₽`} hint="из-за сделок ниже порога" tone="danger" />
+          <SummaryTile
+            label="Формируют просрочку"
+            value={`${summary.topCount} из ${summary.total}`}
+            hint={`${summary.topShare}% всей просрочки`}
+            tone="danger"
+          />
+        </div>
+      </section>
+
 
       {/* 3. Матрица Объём × Качество */}
       <section className="mb-5">
