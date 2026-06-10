@@ -461,6 +461,7 @@ export default function Deals() {
               <AllDealsTable />
             </div>
           </>
+          </div>
         )}
       </div>
     </>
