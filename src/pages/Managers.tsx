@@ -114,10 +114,13 @@ export default function Managers() {
   const teamPlan = useMemo(() => enriched.reduce((s, m) => s + m.plan, 0), [enriched]);
   const [vmOpen, setVmOpen] = useState<VMQuad | null>(null);
   const [vmShowAll, setVmShowAll] = useState(false);
+  const vmRowRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const vmPanelRef = useRef<HTMLDivElement>(null);
   // Приоритетные группы
   type PriorityKey = "loss" | "gap" | "overdue" | "low";
   const [prioOpen, setPrioOpen] = useState<PriorityKey | null>(null);
   const [prioShowAll, setPrioShowAll] = useState(false);
+  const prioRowRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   // Ещё аналитика — один общий блок с переключателем подразделов
   type MoreKey = "summary" | "quad" | "seg" | "rel" | "all";
   const [moreOpen, setMoreOpen] = useState(false);
@@ -125,6 +128,50 @@ export default function Managers() {
   const moreContentRef = useRef<HTMLDivElement>(null);
   const moreHeaderRef = useRef<HTMLDivElement>(null);
   const prioContentRef = useRef<HTMLDivElement>(null);
+
+  // Универсальные helpers: проскролл к открытому контенту / возврат к триггеру
+  const scrollToEl = (el: HTMLElement | null) => {
+    if (!el) return;
+    requestAnimationFrame(() => {
+      setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "start" }), 30);
+    });
+  };
+  const openVm = (key: VMQuad) => {
+    const isOpen = vmOpen === key;
+    if (isOpen) {
+      setVmOpen(null);
+      setVmShowAll(false);
+      scrollToEl(vmRowRefs.current[key]);
+    } else {
+      setVmOpen(key);
+      setVmShowAll(false);
+      scrollToEl(vmPanelRef.current);
+    }
+  };
+  const closeVm = () => {
+    const trigger = vmOpen ? vmRowRefs.current[vmOpen] : null;
+    setVmOpen(null);
+    setVmShowAll(false);
+    scrollToEl(trigger);
+  };
+  const openPrio = (key: PriorityKey) => {
+    const isOpen = prioOpen === key;
+    if (isOpen) {
+      setPrioOpen(null);
+      setPrioShowAll(false);
+      scrollToEl(prioRowRefs.current[key]);
+    } else {
+      setPrioOpen(key);
+      setPrioShowAll(false);
+      scrollToEl(prioContentRef.current);
+    }
+  };
+  const closePrio = () => {
+    const trigger = prioOpen ? prioRowRefs.current[prioOpen] : null;
+    setPrioOpen(null);
+    setPrioShowAll(false);
+    scrollToEl(trigger);
+  };
 
   // ============== Сводка команды ==============
   const summary = useMemo(() => {
@@ -249,11 +296,12 @@ export default function Managers() {
               return (
                 <button
                   key={key}
+                  ref={el => { vmRowRefs.current[key] = el; }}
                   type="button"
                   disabled={empty}
-                  onClick={() => setVmOpen(isOpen ? null : key)}
+                  onClick={() => openVm(key)}
                   className={cn(
-                    "w-full text-left px-3 py-2.5 lg:px-4 lg:py-3 transition-colors",
+                    "w-full text-left px-3 py-2.5 lg:px-4 lg:py-3 transition-colors scroll-mt-4",
                     !empty && "hover:bg-muted/30",
                     isOpen && "bg-muted/40",
                     empty && "opacity-60 cursor-default"
@@ -304,10 +352,14 @@ export default function Managers() {
           const meta = VM_META[vmOpen];
           const visible = g.items.slice(0, vmShowAll ? g.items.length : 5);
           return (
-            <div className="mt-3 bg-card rounded-lg border border-border shadow-card">
+            <div
+              ref={vmPanelRef}
+              key={vmOpen}
+              className="mt-3 bg-card rounded-lg border-2 border-accent/40 shadow-card scroll-mt-4 animate-in fade-in slide-in-from-top-2 duration-300"
+            >
               <div className="px-4 py-3 border-b border-border flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <div className="text-[11px] text-muted-foreground">Выбрано</div>
+                  <div className="text-[11px] text-muted-foreground">Менеджеры сегмента</div>
                   <div className={cn("font-display font-semibold text-sm", meta.tone)}>{meta.title}</div>
                   <div className="text-[11px] text-muted-foreground mt-0.5">
                     {g.items.length} {g.items.length === 1 ? "менеджер" : "менеджеров"} · <span className="num text-foreground">{formatShort(g.sales)} ₽</span>
@@ -318,7 +370,7 @@ export default function Managers() {
                     {g.marginLoss > 0 && <> · потери <span className="num text-destructive">{formatShort(g.marginLoss)} ₽</span></>}
                   </div>
                 </div>
-                <button onClick={() => { setVmOpen(null); setVmShowAll(false); }} className="text-xs text-muted-foreground hover:text-foreground shrink-0">Закрыть</button>
+                <button onClick={closeVm} className="text-xs text-muted-foreground hover:text-foreground shrink-0">Закрыть</button>
               </div>
               <div className="divide-y divide-border">
                 {visible.map(m => {
@@ -353,8 +405,8 @@ export default function Managers() {
                   );
                 })}
               </div>
-              {g.items.length > 5 && (
-                <div className="px-4 py-2 border-t border-border">
+              <div className="px-4 py-2 border-t border-border flex items-center justify-between gap-2">
+                {g.items.length > 5 ? (
                   <button
                     type="button"
                     onClick={() => setVmShowAll(v => !v)}
@@ -362,8 +414,15 @@ export default function Managers() {
                   >
                     {vmShowAll ? "Свернуть" : `Показать ещё ${g.items.length - 5}`}
                   </button>
-                </div>
-              )}
+                ) : <span />}
+                <button
+                  type="button"
+                  onClick={closeVm}
+                  className="text-xs text-accent hover:underline inline-flex items-center gap-1"
+                >
+                  ↑ Вернуться к матрице
+                </button>
+              </div>
             </div>
           );
         })()}
@@ -447,17 +506,12 @@ export default function Managers() {
                   return (
                     <button
                       key={k}
+                      ref={el => { prioRowRefs.current[k] = el; }}
                       type="button"
                       disabled={empty}
-                      onClick={() => {
-                        setPrioOpen(isOpen ? null : k);
-                        setPrioShowAll(false);
-                        if (!isOpen) {
-                          setTimeout(() => prioContentRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
-                        }
-                      }}
+                      onClick={() => openPrio(k)}
                       className={cn(
-                        "w-full text-left px-3 py-2.5 lg:px-4 lg:py-3 transition-colors",
+                        "w-full text-left px-3 py-2.5 lg:px-4 lg:py-3 transition-colors scroll-mt-4",
                         !empty && "hover:bg-muted/30",
                         isOpen && "bg-muted/40",
                         empty && "opacity-60 cursor-default"
@@ -489,17 +543,21 @@ export default function Managers() {
                 const g = groups[prioOpen];
                 const visible = g.items.slice(0, prioShowAll ? g.items.length : 5);
                 return (
-                  <div ref={prioContentRef} className="mt-3 bg-card rounded-lg border border-border shadow-card scroll-mt-4">
+                  <div
+                    ref={prioContentRef}
+                    key={prioOpen}
+                    className="mt-3 bg-card rounded-lg border-2 border-accent/40 shadow-card scroll-mt-4 animate-in fade-in slide-in-from-top-2 duration-300"
+                  >
                     <div className="px-4 py-3 border-b border-border flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <div className="text-[11px] text-muted-foreground">Группа</div>
+                        <div className="text-[11px] text-muted-foreground">Менеджеры группы</div>
                         <div className={cn("font-display font-semibold text-sm", g.tone)}>{g.title}</div>
                         <div className="text-[11px] text-muted-foreground mt-0.5 num">
                           {g.items.length} {g.items.length === 1 ? "менеджер" : "менеджеров"} · {g.metric}
                         </div>
                         <div className="text-[11px] text-muted-foreground mt-0.5">Действие: {g.action}</div>
                       </div>
-                      <button onClick={() => { setPrioOpen(null); setPrioShowAll(false); }} className="text-xs text-muted-foreground hover:text-foreground shrink-0">Закрыть</button>
+                      <button onClick={closePrio} className="text-xs text-muted-foreground hover:text-foreground shrink-0">Закрыть</button>
                     </div>
                     <div className="divide-y divide-border">
                       {visible.map(m => (
@@ -518,8 +576,8 @@ export default function Managers() {
                         </Link>
                       ))}
                     </div>
-                    {g.items.length > 5 && (
-                      <div className="px-4 py-2 border-t border-border">
+                    <div className="px-4 py-2 border-t border-border flex items-center justify-between gap-2">
+                      {g.items.length > 5 ? (
                         <button
                           type="button"
                           onClick={() => setPrioShowAll(v => !v)}
@@ -527,8 +585,15 @@ export default function Managers() {
                         >
                           {prioShowAll ? "Свернуть" : `Показать ещё ${g.items.length - 5}`}
                         </button>
-                      </div>
-                    )}
+                      ) : <span />}
+                      <button
+                        type="button"
+                        onClick={closePrio}
+                        className="text-xs text-accent hover:underline"
+                      >
+                        ↑ Вернуться к группам
+                      </button>
+                    </div>
                   </div>
                 );
               })()}
