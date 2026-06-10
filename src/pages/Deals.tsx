@@ -8,7 +8,7 @@ import {
   type Deal,
 } from "@/data/demo";
 import { Card, PageHeader, Badge, EmptyState } from "@/components/ui-bits";
-import { Filter, SearchX, ChevronDown, ChevronUp, ArrowUp, X } from "lucide-react";
+import { Filter, SearchX, ChevronDown, ChevronUp, ArrowUp, X, MousePointerClick } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -48,10 +48,10 @@ function isPaymentRisk(d: Deal): boolean {
 }
 
 const zoneMeta: Record<ZoneKey, { label: string; short: string; color: string; bg: string; border: string; reason: string }> = {
-  norm:     { label: "Норма",          short: "Норма",        color: "hsl(var(--success))",     bg: "bg-success/10",     border: "border-success/30",     reason: "Маржа в норме, сделка движется" },
-  cheap:    { label: "Ниже маржи",     short: "Ниже маржи",   color: "hsl(var(--warning))",     bg: "bg-warning/10",     border: "border-warning/30",     reason: `Маржа ниже ${MARGIN_THRESHOLD}%, но сделка движется` },
-  stuck:    { label: "Без движения",   short: "Без движения", color: "hsl(var(--accent))",      bg: "bg-accent/10",      border: "border-accent/30",      reason: `Маржа в норме, но нет движения > ${IDLE_THRESHOLD} дней` },
-  critical: { label: "Критичная",      short: "Критичная",    color: "hsl(var(--destructive))", bg: "bg-destructive/10", border: "border-destructive/40", reason: `Маржа ниже ${MARGIN_THRESHOLD}% и нет движения > ${IDLE_THRESHOLD} дней` },
+  norm:     { label: "Норма",        short: "Норма",        color: "hsl(var(--success))",     bg: "bg-success/10",     border: "border-success/30",     reason: "Маржа в норме, сделка движется" },
+  cheap:    { label: "Ниже маржи",   short: "Ниже маржи",   color: "hsl(var(--warning))",     bg: "bg-warning/10",     border: "border-warning/30",     reason: `Маржа ниже ${MARGIN_THRESHOLD}%, но сделка движется` },
+  stuck:    { label: "Без движения", short: "Без движения", color: "hsl(var(--accent))",      bg: "bg-accent/10",      border: "border-accent/30",      reason: `Маржа в норме, но нет движения > ${IDLE_THRESHOLD} дней` },
+  critical: { label: "Критичная",    short: "Критичная",    color: "hsl(var(--destructive))", bg: "bg-destructive/10", border: "border-destructive/40", reason: `Маржа ниже ${MARGIN_THRESHOLD}% и нет движения > ${IDLE_THRESHOLD} дней` },
 };
 
 const activeDeals = allDeals.filter(d => !CLOSED_STAGES.has(d.stage));
@@ -65,6 +65,14 @@ const filterShort: Record<FilterKey, string> = {
   stuck:    "Без движения",
   payment:  "Риск оплаты",
   norm:     "Норма",
+};
+
+const filterMeta: Record<FilterKey, { color: string; bg: string; border: string; reason: string }> = {
+  critical: { color: zoneMeta.critical.color, bg: zoneMeta.critical.bg, border: zoneMeta.critical.border, reason: zoneMeta.critical.reason },
+  cheap:    { color: zoneMeta.cheap.color,    bg: zoneMeta.cheap.bg,    border: zoneMeta.cheap.border,    reason: zoneMeta.cheap.reason },
+  stuck:    { color: zoneMeta.stuck.color,    bg: zoneMeta.stuck.bg,    border: zoneMeta.stuck.border,    reason: zoneMeta.stuck.reason },
+  norm:     { color: zoneMeta.norm.color,     bg: zoneMeta.norm.bg,     border: zoneMeta.norm.border,     reason: zoneMeta.norm.reason },
+  payment:  { color: "hsl(var(--destructive))", bg: "bg-destructive/5", border: "border-destructive/30", reason: "Клиенты уже имеют просрочку или долг" },
 };
 
 function dealsForFilter(key: FilterKey): Deal[] {
@@ -82,19 +90,40 @@ function actionFor(key: FilterKey): string {
   }
 }
 
+function pluralDeals(n: number): string {
+  const m100 = n % 100;
+  if (m100 >= 11 && m100 <= 14) return "сделок";
+  const m10 = n % 10;
+  if (m10 === 1) return "сделка";
+  if (m10 >= 2 && m10 <= 4) return "сделки";
+  return "сделок";
+}
+
+function pointZoneLabel(marginPct: number, idle: number): string {
+  const low = marginPct < MARGIN_THRESHOLD;
+  const stuck = idle > IDLE_THRESHOLD;
+  if (low && stuck) return "критичная";
+  if (low) return "продали дёшево";
+  if (stuck) return "зависла";
+  return "норма";
+}
+
 // ===== Страница =====
 
 export default function Deals() {
   const isMobile = useIsMobile();
   const [active, setActive] = useState<FilterKey | null>("critical");
   const [shownAll, setShownAll] = useState(false);
-  const [allOpen, setAllOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailGroup, setDetailGroup] = useState<FilterKey | null>(null);
+  const [detailShownAll, setDetailShownAll] = useState(false);
   const [selectedPoint, setSelectedPoint] = useState<{ id: string; marginPct: number; idle: number; amount: number } | null>(null);
 
   const chartRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const filterRowRef = useRef<HTMLDivElement>(null);
-  const allHeaderRef = useRef<HTMLButtonElement>(null);
+  const detailHeaderRef = useRef<HTMLButtonElement>(null);
+  const detailGroupRef = useRef<HTMLDivElement>(null);
 
   const lowMargin = activeDeals.filter(d => d.marginPct < MARGIN_THRESHOLD).length;
   const stuckCount = activeDeals.filter(d => daysIdle(d) > IDLE_THRESHOLD).length;
@@ -137,16 +166,28 @@ export default function Deals() {
     scrollTo(filterRowRef.current);
   };
 
-  const toggleAll = () => {
-    setAllOpen(v => {
+  const toggleDetail = () => {
+    setDetailOpen(v => {
       const next = !v;
-      if (next) {
-        scrollTo(allHeaderRef.current);
-      } else {
-        scrollTo(allHeaderRef.current);
+      if (!next) {
+        setDetailGroup(null);
+        setDetailShownAll(false);
       }
+      scrollTo(detailHeaderRef.current);
       return next;
     });
+  };
+
+  const pickDetailGroup = (key: FilterKey) => {
+    setDetailShownAll(false);
+    setDetailGroup(key);
+    scrollTo(detailGroupRef.current);
+  };
+
+  const closeDetailGroup = () => {
+    setDetailGroup(null);
+    setDetailShownAll(false);
+    scrollTo(detailHeaderRef.current);
   };
 
   return (
@@ -222,23 +263,38 @@ export default function Deals() {
           </ResponsiveContainer>
         </div>
 
-        {/* Mobile: выбранная точка под графиком */}
-        {isMobile && selectedPoint && (
-          <div className="mt-2 rounded-md border border-border bg-muted/30 p-2.5 flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <div className="text-[11px] text-muted-foreground">Выбрана сделка</div>
-              <div className="text-[12px] num">
-                Маржа {selectedPoint.marginPct}% · без движения {selectedPoint.idle} дн · {formatShort(selectedPoint.amount)} ₽
+        {/* Mobile: карточка выбранной точки или подсказка */}
+        {isMobile && (
+          selectedPoint ? (
+            <div className="mt-3 rounded-lg border-2 border-foreground/15 bg-card p-3">
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <div className="text-[12px] font-semibold uppercase tracking-wide text-foreground">
+                  Сделка {selectedPoint.id.toUpperCase()}
+                </div>
+                <button
+                  onClick={() => setSelectedPoint(null)}
+                  className="text-muted-foreground hover:text-foreground p-1 -m-1 shrink-0"
+                  aria-label="Сбросить"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <PointStat label="Маржа" value={`${selectedPoint.marginPct}%`} danger={selectedPoint.marginPct < MARGIN_THRESHOLD} />
+                <PointStat label="Без движения" value={`${selectedPoint.idle} дн`} danger={selectedPoint.idle > IDLE_THRESHOLD} />
+                <PointStat label="Сумма" value={`${formatShort(selectedPoint.amount)} ₽`} />
+              </div>
+              <div className="text-[12px] text-foreground mt-2">
+                <span className="text-muted-foreground">Риск: </span>
+                <span className="font-medium">{pointZoneLabel(selectedPoint.marginPct, selectedPoint.idle)}</span>
               </div>
             </div>
-            <button
-              onClick={() => setSelectedPoint(null)}
-              className="text-muted-foreground hover:text-foreground p-1 -m-1 shrink-0"
-              aria-label="Сбросить"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          </div>
+          ) : (
+            <div className="mt-3 rounded-md border border-dashed border-border bg-muted/20 px-3 py-2 text-[12px] text-muted-foreground flex items-center gap-2">
+              <MousePointerClick className="h-3.5 w-3.5 shrink-0" />
+              Тапните точку, чтобы увидеть сумму, маржу и дни без движения.
+            </div>
+          )
         )}
 
         {/* Легенда зон */}
@@ -289,37 +345,118 @@ export default function Deals() {
         />}
       </div>
 
-      {/* === Все сделки === */}
+      {/* === Детализация === */}
       <div className="mt-4">
         <button
-          ref={allHeaderRef}
-          onClick={toggleAll}
+          ref={detailHeaderRef}
+          onClick={toggleDetail}
           className="w-full flex items-center justify-between gap-2 px-4 py-3 rounded-lg border border-border bg-card hover:bg-muted/40 transition-colors scroll-mt-24"
         >
-          <div className="text-sm font-medium">Все сделки · {allDeals.length}</div>
-          {allOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+          <div className="text-sm font-medium">Детализация · {activeDeals.length + paymentRiskCount} сделок</div>
+          {detailOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
         </button>
-        {allOpen && (
+
+        {detailOpen && (
           <>
-            <div className="flex items-center justify-between gap-2 mt-2 mb-2 px-1">
-              <button
-                onClick={() => scrollTo(chartRef.current)}
-                className="text-[12px] text-muted-foreground hover:text-foreground flex items-center gap-1"
-              >
-                <ArrowUp className="h-3 w-3" /> К матрице риска
-              </button>
-              <button
-                onClick={toggleAll}
-                className="text-[12px] text-muted-foreground hover:text-foreground px-2 py-1 rounded-md hover:bg-muted/50"
-              >
-                Закрыть
-              </button>
+            {/* Mobile: группы → одна группа → 5 сделок */}
+            <div className="lg:hidden mt-2">
+              <div className="flex items-center justify-between gap-2 mb-2 px-1">
+                <button
+                  onClick={() => scrollTo(chartRef.current)}
+                  className="text-[12px] text-muted-foreground hover:text-foreground flex items-center gap-1"
+                >
+                  <ArrowUp className="h-3 w-3" /> К матрице риска
+                </button>
+                <button
+                  onClick={toggleDetail}
+                  className="text-[12px] text-muted-foreground hover:text-foreground px-2 py-1 rounded-md hover:bg-muted/50"
+                >
+                  Закрыть
+                </button>
+              </div>
+
+              <div className="grid gap-2">
+                {(["critical", "cheap", "stuck", "payment", "norm"] as FilterKey[]).map(k => {
+                  const list = dealsForFilter(k);
+                  const sum = list.reduce((s, d) => s + d.amount, 0);
+                  const isOpen = detailGroup === k;
+                  const meta = filterMeta[k];
+                  return (
+                    <div key={k}>
+                      <button
+                        onClick={() => isOpen ? closeDetailGroup() : pickDetailGroup(k)}
+                        className={cn(
+                          "w-full text-left rounded-lg border px-3 py-2.5 flex items-center justify-between gap-2 transition-colors",
+                          isOpen ? cn(meta.bg, meta.border) : "bg-card border-border hover:bg-muted/40"
+                        )}
+                      >
+                        <div className="min-w-0 flex items-center gap-2">
+                          <span className="h-2 w-2 rounded-full shrink-0" style={{ background: meta.color }} />
+                          <div className="min-w-0">
+                            <div className="text-[13px] font-medium truncate">{filterShort[k]}</div>
+                            <div className="text-[11px] text-muted-foreground num">
+                              {list.length} {pluralDeals(list.length)} · {formatShort(sum)} ₽
+                            </div>
+                          </div>
+                        </div>
+                        {isOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />}
+                      </button>
+
+                      {isOpen && (
+                        <div ref={detailGroupRef} className="mt-2 scroll-mt-24">
+                          <div className={cn("rounded-lg border p-3", meta.bg, meta.border)}>
+                            <div className="text-[12px] text-muted-foreground mb-2">
+                              Причина: {meta.reason}
+                            </div>
+                            {list.length === 0 ? (
+                              <div className="text-[12px] text-muted-foreground">Сделок в этой группе нет.</div>
+                            ) : (
+                              <div className="space-y-2">
+                                {(detailShownAll ? list : list.slice(0, 5)).map(d => (
+                                  <DealRow key={d.id} d={d} filter={k} />
+                                ))}
+                                {!detailShownAll && list.length > 5 && (
+                                  <button
+                                    onClick={() => setDetailShownAll(true)}
+                                    className="w-full text-xs px-3 py-2 rounded-md border border-border bg-card hover:bg-muted/40"
+                                  >
+                                    Показать ещё {list.length - 5}
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                            <button
+                              onClick={closeDetailGroup}
+                              className="mt-3 w-full text-[12px] px-3 py-2 rounded-md border border-border bg-card hover:bg-muted/40 text-muted-foreground"
+                            >
+                              Закрыть группу
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-            <AllDealsTable />
+
+            {/* Desktop: подробные фильтры и таблица */}
+            <div className="hidden lg:block">
+              <AllDealsTable />
+            </div>
           </>
         )}
       </div>
     </>
+  );
+}
+
+function PointStat({ label, value, danger }: { label: string; value: string; danger?: boolean }) {
+  return (
+    <div className="rounded-md bg-muted/40 px-2 py-1.5">
+      <div className="text-[10px] text-muted-foreground uppercase tracking-wide">{label}</div>
+      <div className={cn("num font-semibold text-[14px] text-foreground", danger && "text-destructive")}>{value}</div>
+    </div>
   );
 }
 
@@ -331,10 +468,7 @@ function DetailPanel({
   filter: FilterKey; deals: Deal[]; total: number;
   shownAll: boolean; onShowAll: () => void; onClose: () => void; onBackToChart: () => void;
 }) {
-  const meta = filter === "payment"
-    ? { label: "Риск оплаты", reason: "Клиенты уже имеют просрочку или долг", color: "hsl(var(--destructive))", bg: "bg-destructive/5", border: "border-destructive/30" }
-    : { label: zoneMeta[filter].label, reason: zoneMeta[filter].reason, color: zoneMeta[filter].color, bg: zoneMeta[filter].bg, border: zoneMeta[filter].border };
-
+  const meta = filterMeta[filter];
   const all = filter === "payment" ? paymentRiskDeals : activeDeals.filter(d => zoneOf(d) === filter);
   const totalSum = all.reduce((s, d) => s + d.amount, 0);
   const action = actionFor(filter);
@@ -345,7 +479,7 @@ function DetailPanel({
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: meta.color }} />
-            <h3 className="font-display text-base font-semibold">{meta.label}</h3>
+            <h3 className="font-display text-base font-semibold">{filterShort[filter]}</h3>
           </div>
           <div className="text-[12px] text-muted-foreground mt-0.5 num">
             {total} {pluralDeals(total)} · {formatShort(totalSum)} ₽
@@ -390,15 +524,6 @@ function DetailPanel({
   );
 }
 
-function pluralDeals(n: number): string {
-  const m100 = n % 100;
-  if (m100 >= 11 && m100 <= 14) return "сделок";
-  const m10 = n % 10;
-  if (m10 === 1) return "сделка";
-  if (m10 >= 2 && m10 <= 4) return "сделки";
-  return "сделок";
-}
-
 function DealRow({ d, filter }: { d: Deal; filter: FilterKey }) {
   const idle = daysIdle(d);
   const low = d.marginPct < MARGIN_THRESHOLD;
@@ -422,7 +547,7 @@ function DealRow({ d, filter }: { d: Deal; filter: FilterKey }) {
   );
 }
 
-// ===== Полная таблица =====
+// ===== Desktop: подробная таблица (только desktop) =====
 
 const stages = ["all", "Новый лид", "Контакт установлен", "Потребность выявлена", "КП отправлено", "Переговоры", "Счёт выставлен", "Выиграна", "Потеряна"];
 
@@ -434,9 +559,6 @@ function AllDealsTable() {
   const [stuck, setStuck] = useState(false);
   const [payment, setPayment] = useState(false);
   const [search, setSearch] = useState("");
-  const [moreOpen, setMoreOpen] = useState(false);
-  const moreRef = useRef<HTMLDivElement>(null);
-  const moreBtnRef = useRef<HTMLButtonElement>(null);
 
   const filtered = useMemo(() => allDeals.filter(d => {
     if (manager !== "all" && d.manager !== manager) return false;
@@ -455,30 +577,20 @@ function AllDealsTable() {
     return true;
   }), [manager, stage, risk, lowMargin, stuck, payment, search]);
 
-  const toggleMore = () => {
-    setMoreOpen(v => {
-      const next = !v;
-      requestAnimationFrame(() => requestAnimationFrame(() => {
-        (next ? moreRef.current : moreBtnRef.current)?.scrollIntoView({ behavior: "smooth", block: "start" });
-      }));
-      return next;
-    });
-  };
-
   return (
-    <div className="mt-1">
+    <div className="mt-3">
       <Card className="mb-3">
         <div className="flex items-center gap-2 mb-3 text-sm font-medium text-muted-foreground">
           <Filter className="h-4 w-4" /> Фильтры
         </div>
-
-        {/* Основные фильтры */}
-        <div className="grid grid-cols-1 lg:grid-cols-6 gap-2">
+        <div className="grid grid-cols-6 gap-2">
           <input
             type="text" placeholder="Поиск по клиенту"
             value={search} onChange={(e) => setSearch(e.target.value)}
-            className="text-sm border border-border rounded-md px-3 py-1.5 bg-card lg:col-span-2"
+            className="text-sm border border-border rounded-md px-3 py-1.5 bg-card col-span-2"
           />
+          <Select value={manager} onChange={setManager} options={[["all","Все менеджеры"], ...managers.map(m => [m.name, m.name] as [string, string])]} />
+          <Select value={stage} onChange={setStage} options={stages.map(s => [s, s === "all" ? "Все стадии" : s])} />
           <Select value={risk} onChange={(v) => setRisk(v as "all" | FilterKey)} options={[
             ["all", "Все риски"],
             ["critical", "Критичная"],
@@ -486,57 +598,20 @@ function AllDealsTable() {
             ["stuck", "Без движения"],
             ["payment", "Риск оплаты"],
           ]} />
-          <Select value={stage} onChange={setStage} options={stages.map(s => [s, s === "all" ? "Все стадии" : s])} />
-
-          {/* Desktop: остальные фильтры всегда видны */}
-          <div className="hidden lg:contents">
-            <Select value={manager} onChange={setManager} options={[["all","Все менеджеры"], ...managers.map(m => [m.name, m.name] as [string, string])]} />
-            <div className="flex flex-wrap items-center gap-3 text-xs">
-              <label className="flex items-center gap-1.5 cursor-pointer">
-                <input type="checkbox" checked={lowMargin} onChange={(e) => setLowMargin(e.target.checked)} />
-                <span>Ниже маржи</span>
-              </label>
-              <label className="flex items-center gap-1.5 cursor-pointer">
-                <input type="checkbox" checked={stuck} onChange={(e) => setStuck(e.target.checked)} />
-                <span>Без движения</span>
-              </label>
-              <label className="flex items-center gap-1.5 cursor-pointer">
-                <input type="checkbox" checked={payment} onChange={(e) => setPayment(e.target.checked)} />
-                <span>Риск оплаты</span>
-              </label>
-            </div>
+          <div className="flex flex-wrap items-center gap-3 text-xs">
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <input type="checkbox" checked={lowMargin} onChange={(e) => setLowMargin(e.target.checked)} />
+              <span>Ниже маржи</span>
+            </label>
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <input type="checkbox" checked={stuck} onChange={(e) => setStuck(e.target.checked)} />
+              <span>Без движения</span>
+            </label>
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <input type="checkbox" checked={payment} onChange={(e) => setPayment(e.target.checked)} />
+              <span>Риск оплаты</span>
+            </label>
           </div>
-        </div>
-
-        {/* Mobile: доп. фильтры */}
-        <div className="lg:hidden mt-2">
-          <button
-            ref={moreBtnRef}
-            onClick={toggleMore}
-            className="w-full text-xs px-3 py-2 rounded-md border border-border bg-card hover:bg-muted/40 flex items-center justify-between scroll-mt-24"
-          >
-            <span>Доп. фильтры</span>
-            {moreOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-          </button>
-          {moreOpen && (
-            <div ref={moreRef} className="mt-2 space-y-2 scroll-mt-24">
-              <Select value={manager} onChange={setManager} options={[["all","Все менеджеры"], ...managers.map(m => [m.name, m.name] as [string, string])]} />
-              <div className="flex flex-wrap items-center gap-3 text-xs px-1">
-                <label className="flex items-center gap-1.5 cursor-pointer">
-                  <input type="checkbox" checked={lowMargin} onChange={(e) => setLowMargin(e.target.checked)} />
-                  <span>Ниже маржи</span>
-                </label>
-                <label className="flex items-center gap-1.5 cursor-pointer">
-                  <input type="checkbox" checked={stuck} onChange={(e) => setStuck(e.target.checked)} />
-                  <span>Без движения</span>
-                </label>
-                <label className="flex items-center gap-1.5 cursor-pointer">
-                  <input type="checkbox" checked={payment} onChange={(e) => setPayment(e.target.checked)} />
-                  <span>Риск оплаты</span>
-                </label>
-              </div>
-            </div>
-          )}
         </div>
       </Card>
 
@@ -547,65 +622,34 @@ function AllDealsTable() {
           hint="Снимите часть фильтров или измените поиск по клиенту."
         />
       ) : (
-        <>
-          {/* Mobile: компактные карточки */}
-          <div className="grid gap-2 lg:hidden">
-            {filtered.map(d => {
-              const idle = daysIdle(d);
-              const low = d.marginPct < MARGIN_THRESHOLD;
-              const stuckRow = idle > IDLE_THRESHOLD;
-              const z = zoneOf(d);
-              return (
-                <div key={d.id} className="bg-card border border-border rounded-lg p-2.5 shadow-card">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="text-[13px] font-medium">Сделка {d.id.toUpperCase()}</div>
-                    <div className="num text-[13px] font-semibold">{formatShort(d.amount)} ₽</div>
-                  </div>
-                  <div className="text-[11px] text-muted-foreground mt-0.5 num">
-                    маржа <span className={cn(low && "text-destructive")}>{d.marginPct}%</span>
-                    {" · "}без шага <span className={cn(stuckRow && "text-destructive")}>{idle > 0 ? `${idle} дн` : "—"}</span>
-                  </div>
-                  <div className="mt-1.5 flex items-center gap-1.5">
-                    {!CLOSED_STAGES.has(d.stage) && (
-                      <Badge className={cn(zoneMeta[z].bg, zoneMeta[z].border, "border")}>{zoneMeta[z].short}</Badge>
-                    )}
-                    <Badge className={paymentStatusColor[d.paymentStatus]}>{d.paymentStatus}</Badge>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Desktop таблица */}
-          <Card className="hidden lg:block">
-            <div className="overflow-x-auto -mx-5 px-5">
-              <table className="w-full">
-                <thead>
-                  <tr className="text-left text-[11px] uppercase tracking-wide text-muted-foreground border-b border-border">
-                    <Th>Клиент</Th><Th>Менеджер</Th><Th>Стадия</Th>
-                    <Th right>Сумма</Th><Th right>Маржа %</Th>
-                    <Th right>Без шага</Th><Th right>Просрочка</Th>
-                    <Th right>Статус</Th>
+        <Card>
+          <div className="overflow-x-auto -mx-5 px-5">
+            <table className="w-full">
+              <thead>
+                <tr className="text-left text-[11px] uppercase tracking-wide text-muted-foreground border-b border-border">
+                  <Th>Клиент</Th><Th>Менеджер</Th><Th>Стадия</Th>
+                  <Th right>Сумма</Th><Th right>Маржа %</Th>
+                  <Th right>Без шага</Th><Th right>Просрочка</Th>
+                  <Th right>Статус</Th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {filtered.map(d => (
+                  <tr key={d.id} className="hover:bg-muted/30">
+                    <td className="py-2.5 px-2 font-medium">{d.client}</td>
+                    <td className="py-2.5 px-2 text-[13px] text-muted-foreground">{d.manager}</td>
+                    <td className="py-2.5 px-2 text-[13px] text-muted-foreground">{d.stage}</td>
+                    <td className="py-2.5 px-2 text-right num">{formatShort(d.amount)}</td>
+                    <td className={`py-2.5 px-2 text-right num ${d.marginPct < MARGIN_THRESHOLD ? "text-destructive font-semibold" : ""}`}>{d.marginPct}%</td>
+                    <td className={`py-2.5 px-2 text-right num ${daysIdle(d) > IDLE_THRESHOLD ? "text-destructive font-semibold" : "text-muted-foreground"}`}>{daysIdle(d) > 0 ? `${daysIdle(d)} дн` : "—"}</td>
+                    <td className={`py-2.5 px-2 text-right num ${d.overdueDays > 0 ? "text-destructive" : "text-muted-foreground"}`}>{d.overdueDays > 0 ? `${d.overdueDays} дн` : "—"}</td>
+                    <td className="py-2.5 px-2 text-right"><Badge className={paymentStatusColor[d.paymentStatus]}>{d.paymentStatus}</Badge></td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {filtered.map(d => (
-                    <tr key={d.id} className="hover:bg-muted/30">
-                      <td className="py-2.5 px-2 font-medium">{d.client}</td>
-                      <td className="py-2.5 px-2 text-[13px] text-muted-foreground">{d.manager}</td>
-                      <td className="py-2.5 px-2 text-[13px] text-muted-foreground">{d.stage}</td>
-                      <td className="py-2.5 px-2 text-right num">{formatShort(d.amount)}</td>
-                      <td className={`py-2.5 px-2 text-right num ${d.marginPct < MARGIN_THRESHOLD ? "text-destructive font-semibold" : ""}`}>{d.marginPct}%</td>
-                      <td className={`py-2.5 px-2 text-right num ${daysIdle(d) > IDLE_THRESHOLD ? "text-destructive font-semibold" : "text-muted-foreground"}`}>{daysIdle(d) > 0 ? `${daysIdle(d)} дн` : "—"}</td>
-                      <td className={`py-2.5 px-2 text-right num ${d.overdueDays > 0 ? "text-destructive" : "text-muted-foreground"}`}>{d.overdueDays > 0 ? `${d.overdueDays} дн` : "—"}</td>
-                      <td className="py-2.5 px-2 text-right"><Badge className={paymentStatusColor[d.paymentStatus]}>{d.paymentStatus}</Badge></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-        </>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
       )}
     </div>
   );
