@@ -322,6 +322,7 @@ export default function Deals() {
           return (
             <button
               key={k}
+              ref={el => { filterTriggerRefs.current[k] = el; }}
               onClick={() => pickFilter(k)}
               className={cn(
                 "text-xs px-2.5 py-2 rounded-md border transition-colors flex items-center justify-between gap-2",
