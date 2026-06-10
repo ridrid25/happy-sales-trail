@@ -125,9 +125,12 @@ export default function Managers() {
   type MoreKey = "summary" | "quad" | "seg" | "rel" | "all";
   const [moreOpen, setMoreOpen] = useState(false);
   const [moreTab, setMoreTab] = useState<MoreKey>("summary");
+  // На mobile показываем либо сетку кнопок, либо содержимое выбранного раздела
+  const [moreMobileView, setMoreMobileView] = useState<"grid" | MoreKey>("grid");
   const moreContentRef = useRef<HTMLDivElement>(null);
-  const moreHeaderRef = useRef<HTMLDivElement>(null);
+  const moreHeaderRef = useRef<HTMLButtonElement>(null);
   const prioContentRef = useRef<HTMLDivElement>(null);
+
 
   // Универсальные helpers: проскролл к открытому контенту / возврат к триггеру
   const scrollToEl = (el: HTMLElement | null) => {
