@@ -543,17 +543,21 @@ export default function Managers() {
                 const g = groups[prioOpen];
                 const visible = g.items.slice(0, prioShowAll ? g.items.length : 5);
                 return (
-                  <div ref={prioContentRef} className="mt-3 bg-card rounded-lg border border-border shadow-card scroll-mt-4">
+                  <div
+                    ref={prioContentRef}
+                    key={prioOpen}
+                    className="mt-3 bg-card rounded-lg border-2 border-accent/40 shadow-card scroll-mt-4 animate-in fade-in slide-in-from-top-2 duration-300"
+                  >
                     <div className="px-4 py-3 border-b border-border flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <div className="text-[11px] text-muted-foreground">Группа</div>
+                        <div className="text-[11px] text-muted-foreground">Менеджеры группы</div>
                         <div className={cn("font-display font-semibold text-sm", g.tone)}>{g.title}</div>
                         <div className="text-[11px] text-muted-foreground mt-0.5 num">
                           {g.items.length} {g.items.length === 1 ? "менеджер" : "менеджеров"} · {g.metric}
                         </div>
                         <div className="text-[11px] text-muted-foreground mt-0.5">Действие: {g.action}</div>
                       </div>
-                      <button onClick={() => { setPrioOpen(null); setPrioShowAll(false); }} className="text-xs text-muted-foreground hover:text-foreground shrink-0">Закрыть</button>
+                      <button onClick={closePrio} className="text-xs text-muted-foreground hover:text-foreground shrink-0">Закрыть</button>
                     </div>
                     <div className="divide-y divide-border">
                       {visible.map(m => (
@@ -572,8 +576,8 @@ export default function Managers() {
                         </Link>
                       ))}
                     </div>
-                    {g.items.length > 5 && (
-                      <div className="px-4 py-2 border-t border-border">
+                    <div className="px-4 py-2 border-t border-border flex items-center justify-between gap-2">
+                      {g.items.length > 5 ? (
                         <button
                           type="button"
                           onClick={() => setPrioShowAll(v => !v)}
@@ -581,8 +585,15 @@ export default function Managers() {
                         >
                           {prioShowAll ? "Свернуть" : `Показать ещё ${g.items.length - 5}`}
                         </button>
-                      </div>
-                    )}
+                      ) : <span />}
+                      <button
+                        type="button"
+                        onClick={closePrio}
+                        className="text-xs text-accent hover:underline"
+                      >
+                        ↑ Вернуться к группам
+                      </button>
+                    </div>
                   </div>
                 );
               })()}
