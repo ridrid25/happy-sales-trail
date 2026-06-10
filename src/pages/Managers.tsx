@@ -114,10 +114,13 @@ export default function Managers() {
   const teamPlan = useMemo(() => enriched.reduce((s, m) => s + m.plan, 0), [enriched]);
   const [vmOpen, setVmOpen] = useState<VMQuad | null>(null);
   const [vmShowAll, setVmShowAll] = useState(false);
+  const vmRowRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const vmPanelRef = useRef<HTMLDivElement>(null);
   // Приоритетные группы
   type PriorityKey = "loss" | "gap" | "overdue" | "low";
   const [prioOpen, setPrioOpen] = useState<PriorityKey | null>(null);
   const [prioShowAll, setPrioShowAll] = useState(false);
+  const prioRowRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   // Ещё аналитика — один общий блок с переключателем подразделов
   type MoreKey = "summary" | "quad" | "seg" | "rel" | "all";
   const [moreOpen, setMoreOpen] = useState(false);
@@ -125,6 +128,50 @@ export default function Managers() {
   const moreContentRef = useRef<HTMLDivElement>(null);
   const moreHeaderRef = useRef<HTMLDivElement>(null);
   const prioContentRef = useRef<HTMLDivElement>(null);
+
+  // Универсальные helpers: проскролл к открытому контенту / возврат к триггеру
+  const scrollToEl = (el: HTMLElement | null) => {
+    if (!el) return;
+    requestAnimationFrame(() => {
+      setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "start" }), 30);
+    });
+  };
+  const openVm = (key: VMQuad) => {
+    const isOpen = vmOpen === key;
+    if (isOpen) {
+      setVmOpen(null);
+      setVmShowAll(false);
+      scrollToEl(vmRowRefs.current[key]);
+    } else {
+      setVmOpen(key);
+      setVmShowAll(false);
+      scrollToEl(vmPanelRef.current);
+    }
+  };
+  const closeVm = () => {
+    const trigger = vmOpen ? vmRowRefs.current[vmOpen] : null;
+    setVmOpen(null);
+    setVmShowAll(false);
+    scrollToEl(trigger);
+  };
+  const openPrio = (key: PriorityKey) => {
+    const isOpen = prioOpen === key;
+    if (isOpen) {
+      setPrioOpen(null);
+      setPrioShowAll(false);
+      scrollToEl(prioRowRefs.current[key]);
+    } else {
+      setPrioOpen(key);
+      setPrioShowAll(false);
+      scrollToEl(prioContentRef.current);
+    }
+  };
+  const closePrio = () => {
+    const trigger = prioOpen ? prioRowRefs.current[prioOpen] : null;
+    setPrioOpen(null);
+    setPrioShowAll(false);
+    scrollToEl(trigger);
+  };
 
   // ============== Сводка команды ==============
   const summary = useMemo(() => {
