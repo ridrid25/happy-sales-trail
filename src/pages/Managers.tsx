@@ -233,25 +233,15 @@ export default function Managers() {
                   <div className="flex justify-between"><span className="text-muted-foreground">Ср. маржа</span><span className={cn("num", g.items.length && g.avgMargin < MIN_MARGIN_PCT && "text-destructive")}>{g.items.length ? `${g.avgMargin}%` : "—"}</span></div>
                   <div className="flex justify-between"><span className="text-muted-foreground">Потеря маржи</span><span className={cn("num", g.marginLoss > 0 && "text-destructive")}>{g.marginLoss > 0 ? `${formatShort(g.marginLoss)} ₽` : "—"}</span></div>
                 </div>
-                {g.items.length > 0 && (
-                  <div className="mt-2 pt-2 border-t border-border/60 space-y-0.5">
-                    {g.items.slice(0, 2).map(m => (
-                      <div key={m.id} className="text-[11px] lg:text-xs truncate">{m.name}</div>
-                    ))}
-                    {g.items.length > 2 && <div className="text-[10px] text-muted-foreground">+ ещё {g.items.length - 2}</div>}
-                  </div>
-                )}
                 <div className="mt-2 text-[11px] lg:text-xs leading-snug">
                   <div><span className="text-muted-foreground">Вывод: </span>{meta.conclusion}</div>
-                  <div className="mt-0.5 flex items-start gap-1 text-accent">
-                    <ArrowRight className="h-3 w-3 mt-0.5 shrink-0" />
-                    <span>{meta.action}</span>
+                </div>
+                {g.items.length > 0 && (
+                  <div className="mt-2 pt-2 border-t border-border/60 inline-flex items-center gap-1 text-[11px] lg:text-xs text-accent font-medium">
+                    {isOpen ? "Скрыть менеджеров" : "Смотреть менеджеров"}
+                    <ArrowRight className={cn("h-3 w-3 transition-transform", isOpen && "rotate-90")} />
                   </div>
-                </div>
-                <div className="mt-2 text-[10px] text-muted-foreground flex items-center gap-1">
-                  <ChevronDown className={cn("h-3 w-3 transition-transform", isOpen && "rotate-180")} />
-                  {isOpen ? "Скрыть менеджеров" : "Показать менеджеров"}
-                </div>
+                )}
               </button>
             );
           })}
