@@ -232,17 +232,8 @@ export default function Deals() {
               {!isMobile && (
                 <Tooltip
                   cursor={{ strokeDasharray: "3 3" }}
-                  contentStyle={{
-                    background: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: 8, fontSize: 12,
-                  }}
-                  formatter={(value: number | string, name: string) => {
-                    if (name === "Маржа") return [`${value}%`, "Маржа"];
-                    if (name === "Без движения") return [`${value} дн`, "Без движения"];
-                    return [value, name];
-                  }}
-                  labelFormatter={() => ""}
+                  wrapperStyle={{ outline: "none" }}
+                  content={<PointTooltip />}
                 />
               )}
 
