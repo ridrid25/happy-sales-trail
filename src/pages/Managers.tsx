@@ -296,11 +296,12 @@ export default function Managers() {
               return (
                 <button
                   key={key}
+                  ref={el => { vmRowRefs.current[key] = el; }}
                   type="button"
                   disabled={empty}
-                  onClick={() => setVmOpen(isOpen ? null : key)}
+                  onClick={() => openVm(key)}
                   className={cn(
-                    "w-full text-left px-3 py-2.5 lg:px-4 lg:py-3 transition-colors",
+                    "w-full text-left px-3 py-2.5 lg:px-4 lg:py-3 transition-colors scroll-mt-4",
                     !empty && "hover:bg-muted/30",
                     isOpen && "bg-muted/40",
                     empty && "opacity-60 cursor-default"
