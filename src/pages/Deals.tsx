@@ -390,6 +390,7 @@ export default function Deals() {
                   return (
                     <div key={k}>
                       <button
+                        ref={el => { detailTriggerRefs.current[k] = el; }}
                         onClick={() => isOpen ? closeDetailGroup() : pickDetailGroup(k)}
                         className={cn(
                           "w-full text-left rounded-lg border px-3 py-2.5 flex items-center justify-between gap-2 transition-colors",
