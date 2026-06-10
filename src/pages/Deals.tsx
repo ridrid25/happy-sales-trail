@@ -126,6 +126,10 @@ export default function Deals() {
   const filterRowRef = useRef<HTMLDivElement>(null);
   const detailHeaderRef = useRef<HTMLButtonElement>(null);
   const detailGroupRef = useRef<HTMLDivElement>(null);
+  const filterTriggerRefs = useRef<Partial<Record<FilterKey, HTMLButtonElement | null>>>({});
+  const detailTriggerRefs = useRef<Partial<Record<FilterKey, HTMLButtonElement | null>>>({});
+  const lastFilterTrigger = useRef<HTMLElement | null>(null);
+  const lastDetailTrigger = useRef<HTMLElement | null>(null);
 
   const lowMargin = activeDeals.filter(d => d.marginPct < MARGIN_THRESHOLD).length;
   const stuckCount = activeDeals.filter(d => daysIdle(d) > IDLE_THRESHOLD).length;
