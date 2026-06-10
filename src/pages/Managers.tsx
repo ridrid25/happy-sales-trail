@@ -962,8 +962,10 @@ export default function Managers() {
                       </div>
                     </div>
                   )}
+                  </div>
                 </div>
               </div>
+
             );
           })()}
         </div>
