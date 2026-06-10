@@ -155,8 +155,12 @@ export default function Deals() {
 
   const scrollTo = (el: HTMLElement | null) => {
     if (!el) return;
+    // Двойной rAF + небольшая задержка, чтобы DOM успел перестроиться
+    // после раскрытия/схлопывания блока — иначе скролл «дёргается».
     requestAnimationFrame(() => requestAnimationFrame(() => {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
+      window.setTimeout(() => {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 60);
     }));
   };
 
@@ -340,15 +344,19 @@ export default function Deals() {
 
       {/* === Панель детализации === */}
       <div ref={panelRef} className="scroll-mt-24">
-        {active && <DetailPanel
-          filter={active}
-          deals={visiblePanelDeals}
-          total={panelDeals.length}
-          shownAll={shownAll}
-          onShowAll={() => setShownAll(true)}
-          onClose={closePanel}
-          onBackToChart={() => scrollTo(chartRef.current)}
-        />}
+        {active && (
+          <div className="animate-fade-in transition-all duration-200">
+            <DetailPanel
+              filter={active}
+              deals={visiblePanelDeals}
+              total={panelDeals.length}
+              shownAll={shownAll}
+              onShowAll={() => setShownAll(true)}
+              onClose={closePanel}
+              onBackToChart={() => scrollTo(chartRef.current)}
+            />
+          </div>
+        )}
       </div>
 
       {/* === Детализация === */}
@@ -363,6 +371,7 @@ export default function Deals() {
         </button>
 
         {detailOpen && (
+          <div className="animate-fade-in transition-all duration-200">
           <>
             {/* Mobile: группы → одна группа → 5 сделок */}
             <div className="lg:hidden mt-2">
@@ -452,6 +461,7 @@ export default function Deals() {
               <AllDealsTable />
             </div>
           </>
+          </div>
         )}
       </div>
     </>
