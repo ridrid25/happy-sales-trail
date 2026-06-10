@@ -658,19 +658,25 @@ export default function Managers() {
             };
             return (
               <div className="bg-card rounded-lg border border-border shadow-card overflow-hidden">
-                {/* Mobile: компактный select */}
-                <div className="lg:hidden border-b border-border p-2 flex items-center gap-2">
-                  <label htmlFor="more-tab-select" className="text-[11px] text-muted-foreground shrink-0">Раздел:</label>
-                  <select
-                    id="more-tab-select"
-                    value={moreTab}
-                    onChange={e => onPick(e.target.value as MoreKey)}
-                    className="flex-1 min-w-0 bg-background border border-border rounded-md px-2 py-1.5 text-xs"
-                  >
+                {/* Mobile: компактная сетка кнопок (3+2) */}
+                <div className="lg:hidden border-b border-border p-2">
+                  <div className="grid grid-cols-3 gap-1.5">
                     {tabs.map(t => (
-                      <option key={t.key} value={t.key}>{t.short}</option>
+                      <button
+                        key={t.key}
+                        type="button"
+                        onClick={() => onPick(t.key)}
+                        className={cn(
+                          "px-2 py-2 rounded-md text-xs border transition-colors text-center leading-tight",
+                          moreTab === t.key
+                            ? "bg-accent text-accent-foreground border-accent font-medium"
+                            : "bg-background border-border hover:bg-muted/40"
+                        )}
+                      >
+                        {t.short}
+                      </button>
                     ))}
-                  </select>
+                  </div>
                 </div>
                 {/* Desktop: табы */}
                 <div className="hidden lg:block border-b border-border p-2">
@@ -692,6 +698,7 @@ export default function Managers() {
                     ))}
                   </div>
                 </div>
+
 
 
                 <div ref={moreContentRef} className="p-3 lg:p-4 scroll-mt-24">
