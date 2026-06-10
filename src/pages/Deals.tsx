@@ -372,7 +372,6 @@ export default function Deals() {
 
         {detailOpen && (
           <div className="animate-fade-in transition-all duration-200">
-            {/* eslint-disable-next-line react/jsx-no-useless-fragment */}
           <>
             {/* Mobile: группы → одна группа → 5 сделок */}
             <div className="lg:hidden mt-2">
