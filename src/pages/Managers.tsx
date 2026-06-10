@@ -506,17 +506,12 @@ export default function Managers() {
                   return (
                     <button
                       key={k}
+                      ref={el => { prioRowRefs.current[k] = el; }}
                       type="button"
                       disabled={empty}
-                      onClick={() => {
-                        setPrioOpen(isOpen ? null : k);
-                        setPrioShowAll(false);
-                        if (!isOpen) {
-                          setTimeout(() => prioContentRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
-                        }
-                      }}
+                      onClick={() => openPrio(k)}
                       className={cn(
-                        "w-full text-left px-3 py-2.5 lg:px-4 lg:py-3 transition-colors",
+                        "w-full text-left px-3 py-2.5 lg:px-4 lg:py-3 transition-colors scroll-mt-4",
                         !empty && "hover:bg-muted/30",
                         isOpen && "bg-muted/40",
                         empty && "opacity-60 cursor-default"
