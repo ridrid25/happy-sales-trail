@@ -161,15 +161,22 @@ export default function Deals() {
   };
 
   const pickFilter = (key: FilterKey) => {
+    // toggle off if user re-taps the same active button
+    if (active === key) {
+      closePanel();
+      return;
+    }
+    lastFilterTrigger.current = filterTriggerRefs.current[key] ?? filterRowRef.current;
     setShownAll(false);
     setActive(key);
     scrollTo(panelRef.current);
   };
 
   const closePanel = () => {
+    const back = lastFilterTrigger.current ?? filterRowRef.current;
     setActive(null);
     setShownAll(false);
-    scrollTo(filterRowRef.current);
+    scrollTo(back);
   };
 
   const toggleDetail = () => {
@@ -178,22 +185,26 @@ export default function Deals() {
       if (!next) {
         setDetailGroup(null);
         setDetailShownAll(false);
+        scrollTo(detailHeaderRef.current);
+      } else {
+        scrollTo(detailHeaderRef.current);
       }
-      scrollTo(detailHeaderRef.current);
       return next;
     });
   };
 
   const pickDetailGroup = (key: FilterKey) => {
+    lastDetailTrigger.current = detailTriggerRefs.current[key] ?? detailHeaderRef.current;
     setDetailShownAll(false);
     setDetailGroup(key);
     scrollTo(detailGroupRef.current);
   };
 
   const closeDetailGroup = () => {
+    const back = lastDetailTrigger.current ?? detailHeaderRef.current;
     setDetailGroup(null);
     setDetailShownAll(false);
-    scrollTo(detailHeaderRef.current);
+    scrollTo(back);
   };
 
   return (
