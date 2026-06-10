@@ -193,106 +193,138 @@ export default function Managers() {
         )}
       </div>
 
-      {/* 1. Матрица Объём × Маржа — главный верхний блок */}
+      {/* 1. Объём × Маржа — компактная таблица-график */}
       <section className="mb-5">
-        <div className="flex items-baseline justify-between mb-1">
+        <div className="flex items-baseline justify-between mb-1 gap-2">
           <h2 className="font-display text-base lg:text-lg font-semibold">Объём продаж × Маржа</h2>
-          <span className="text-[11px] text-muted-foreground">порог объёма: {formatShort(median)} ₽</span>
+          <span className="text-[11px] text-muted-foreground shrink-0">маржа: {MIN_MARGIN_PCT}% · объём: от {formatShort(median)} ₽</span>
         </div>
-        <p className="text-[11px] lg:text-xs text-muted-foreground mb-3">
-          Кто приносит прибыльный объём, а кто создаёт оборот без нормальной маржи. Минимальная маржа — {MIN_MARGIN_PCT}%.
-        </p>
-        <div className="grid grid-cols-2 gap-2 lg:gap-3">
-          {vmGroups.map(g => {
-            const meta = VM_META[g.key];
-            const isOpen = vmOpen === g.key;
-            const isCheap = g.key === "vmCheap" && g.items.length > 0;
+        {(() => {
+          const cheap = vmGroups.find(x => x.key === "vmCheap")!;
+          if (cheap.items.length > 0) {
             return (
-              <button
-                key={g.key}
-                type="button"
-                onClick={() => setVmOpen(isOpen ? null : g.key)}
-                className={cn(
-                  "text-left bg-card rounded-lg border-2 p-3 lg:p-4 shadow-card transition-colors hover:bg-muted/30",
-                  meta.border, meta.bg,
-                  isCheap && "ring-2 ring-destructive/40 shadow-lg",
-                  isOpen && "ring-2 ring-accent/40"
-                )}
-              >
-                {isCheap && (
-                  <div className="mb-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] lg:text-[10px] font-semibold uppercase tracking-wide bg-destructive/15 text-destructive">
-                    <AlertTriangle className="h-2.5 w-2.5" /> Главная зона риска
-                  </div>
-                )}
-                <div className={cn("font-display font-semibold text-sm lg:text-base", meta.tone)}>{meta.title}</div>
-                <div className="text-[10px] lg:text-xs text-muted-foreground mt-0.5 leading-tight">{meta.hint}</div>
-                <div className="mt-2 num font-display text-2xl font-semibold">{g.items.length}</div>
-                <div className="text-[11px] text-muted-foreground">менеджеров</div>
-                <div className="mt-2 space-y-0.5 text-[11px] lg:text-xs">
-                  <div className="flex justify-between"><span className="text-muted-foreground">Выручка</span><span className="num">{formatShort(g.sales)} ₽</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Ср. маржа</span><span className={cn("num", g.items.length && g.avgMargin < MIN_MARGIN_PCT && "text-destructive")}>{g.items.length ? `${g.avgMargin}%` : "—"}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Потеря маржи</span><span className={cn("num", g.marginLoss > 0 && "text-destructive")}>{g.marginLoss > 0 ? `${formatShort(g.marginLoss)} ₽` : "—"}</span></div>
-                </div>
-                <div className="mt-2 text-[11px] lg:text-xs leading-snug">
-                  <div><span className="text-muted-foreground">Вывод: </span>{meta.conclusion}</div>
-                </div>
-                {g.items.length > 0 && (
-                  <div className="mt-2 pt-2 border-t border-border/60 inline-flex items-center gap-1 text-[11px] lg:text-xs text-accent font-medium">
-                    {isOpen ? "Скрыть менеджеров" : "Смотреть менеджеров"}
-                    <ArrowRight className={cn("h-3 w-3 transition-transform", isOpen && "rotate-90")} />
-                  </div>
-                )}
-              </button>
+              <p className="text-[12px] lg:text-sm mb-3">
+                <span className="num font-semibold text-destructive">{cheap.items.length}</span>{" "}
+                {cheap.items.length === 1 ? "менеджер даёт" : "менеджера дают"}{" "}
+                <span className="num font-semibold">{formatShort(cheap.sales)} ₽</span> выручки при марже{" "}
+                <span className="num font-semibold text-destructive">{cheap.avgMargin}%</span>.
+                {cheap.marginLoss > 0 && <> Потери маржи: <span className="num font-semibold text-destructive">{formatShort(cheap.marginLoss)} ₽</span>.</>}
+              </p>
             );
-          })}
+          }
+          return <p className="text-[12px] lg:text-sm text-muted-foreground mb-3">Нет менеджеров в зоне «много, но дёшево».</p>;
+        })()}
+
+        <div className="bg-card rounded-lg border border-border shadow-card divide-y divide-border overflow-hidden">
+          {(() => {
+            const maxSales = Math.max(1, ...vmGroups.map(g => g.sales));
+            const order: VMQuad[] = ["vmCheap", "vmStars", "vmPotential", "vmWeak"];
+            return order.map(key => {
+              const g = vmGroups.find(x => x.key === key)!;
+              const meta = VM_META[key];
+              const isOpen = vmOpen === key;
+              const empty = g.items.length === 0;
+              const barTone = key === "vmCheap" ? "bg-destructive" : key === "vmStars" ? "bg-success" : key === "vmPotential" ? "bg-accent" : "bg-muted-foreground/40";
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  disabled={empty}
+                  onClick={() => setVmOpen(isOpen ? null : key)}
+                  className={cn(
+                    "w-full text-left px-3 py-2.5 lg:px-4 lg:py-3 transition-colors",
+                    !empty && "hover:bg-muted/30",
+                    isOpen && "bg-muted/40",
+                    empty && "opacity-60 cursor-default"
+                  )}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className={cn("font-medium text-[13px] lg:text-sm truncate", meta.tone)}>
+                      {meta.title}
+                    </div>
+                    <div className="text-[11px] text-muted-foreground shrink-0 num">
+                      {empty ? "0 менеджеров" : `${g.items.length} ${g.items.length === 1 ? "менеджер" : "менеджеров"}`}
+                    </div>
+                  </div>
+                  <div className="mt-1.5 h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                    <div className={cn("h-full rounded-full transition-all", barTone)} style={{ width: `${(g.sales / maxSales) * 100}%` }} />
+                  </div>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] lg:text-xs">
+                    <span className="num">{formatShort(g.sales)} ₽</span>
+                    <span className="text-muted-foreground">маржа <span className={cn("num text-foreground", !empty && g.avgMargin < MIN_MARGIN_PCT && "text-destructive")}>{empty ? "—" : `${g.avgMargin}%`}</span></span>
+                    <span className="text-muted-foreground">потери <span className={cn("num", g.marginLoss > 0 ? "text-destructive" : "text-foreground")}>{g.marginLoss > 0 ? `${formatShort(g.marginLoss)} ₽` : "—"}</span></span>
+                    {!empty && (
+                      <span className="ml-auto inline-flex items-center gap-1 text-accent font-medium">
+                        {isOpen ? "Скрыть" : "Смотреть менеджеров"}
+                        <ArrowRight className={cn("h-3 w-3 transition-transform", isOpen && "rotate-90")} />
+                      </span>
+                    )}
+                  </div>
+                </button>
+              );
+            });
+          })()}
         </div>
+
         {vmOpen && (() => {
           const g = vmGroups.find(x => x.key === vmOpen)!;
           const meta = VM_META[vmOpen];
+          const visible = g.items.slice(0, vmShowAll ? g.items.length : 5);
           return (
             <div className="mt-3 bg-card rounded-lg border border-border shadow-card">
-              <div className="px-4 py-3 border-b border-border flex items-center justify-between gap-2">
+              <div className="px-4 py-3 border-b border-border flex items-start justify-between gap-2">
                 <div className="min-w-0">
+                  <div className="text-[11px] text-muted-foreground">Выбрано</div>
                   <div className={cn("font-display font-semibold text-sm", meta.tone)}>{meta.title}</div>
-                  <div className="text-[11px] text-muted-foreground truncate">{meta.action}</div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">
+                    {g.items.length} {g.items.length === 1 ? "менеджер" : "менеджеров"}
+                    {g.marginLoss > 0 && <> · потери маржи <span className="num text-destructive">{formatShort(g.marginLoss)} ₽</span></>}
+                  </div>
                 </div>
-                <button onClick={() => setVmOpen(null)} className="text-xs text-muted-foreground hover:text-foreground shrink-0">Закрыть</button>
+                <button onClick={() => { setVmOpen(null); setVmShowAll(false); }} className="text-xs text-muted-foreground hover:text-foreground shrink-0">Закрыть</button>
               </div>
-              {g.items.length === 0 ? (
-                <div className="p-4 text-sm text-muted-foreground">В этом сегменте никого нет.</div>
-              ) : (
-                <div className="divide-y divide-border">
-                  {g.items.map(m => {
-                    const reason = m.marginPct < MIN_MARGIN_PCT
-                      ? `${m.lowMarginDeals || "несколько"} сделок ниже минимальной маржи`
-                      : m.fact >= median ? "высокий объём при марже выше порога" : "маржа в норме, объём ниже медианы";
-                    const action = m.marginPct < MIN_MARGIN_PCT
-                      ? "проверить скидки и условия"
-                      : m.fact >= median ? "закрепить условия и масштабировать" : "увеличить поток лидов";
-                    return (
-                      <div key={m.id} className="p-3 lg:p-4">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <div className="font-medium truncate">{m.name}</div>
-                            <div className="text-[11px] text-muted-foreground">{m.title}</div>
-                          </div>
-                          <Link to={`/managers/${m.id}`} className="text-xs text-accent hover:underline shrink-0 inline-flex items-center gap-1">
-                            Профиль <ArrowRight className="h-3 w-3" />
-                          </Link>
+              <div className="divide-y divide-border">
+                {visible.map(m => {
+                  const reason = m.marginPct < MIN_MARGIN_PCT
+                    ? `${m.lowMarginDeals || "несколько"} сделок ниже минимальной маржи`
+                    : m.fact >= median ? "высокий объём при марже выше порога" : "маржа в норме, объём ниже медианы";
+                  const action = m.marginPct < MIN_MARGIN_PCT
+                    ? "проверить скидки и условия"
+                    : m.fact >= median ? "закрепить условия и масштабировать" : "увеличить поток лидов";
+                  return (
+                    <div key={m.id} className="p-3 lg:p-4">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="font-medium truncate">{m.name}</div>
+                          <div className="text-[11px] text-muted-foreground">{m.title}</div>
                         </div>
-                        <div className="mt-2 grid grid-cols-2 lg:grid-cols-4 gap-2 text-[11px]">
-                          <Mini label="Выручка" value={`${formatShort(m.fact)} ₽`} />
-                          <Mini label="Маржа" value={`${m.marginPct}%`} danger={m.marginPct < MIN_MARGIN_PCT} />
-                          <Mini label="Потеря маржи" value={m.marginLoss > 0 ? `${formatShort(m.marginLoss)} ₽` : "—"} danger={m.marginLoss > 0} />
-                          <Mini label="Ниже маржи" value={m.lowMarginDeals ? `${m.lowMarginDeals} сделок` : "—"} danger={m.lowMarginDeals > 0} />
-                        </div>
-                        <div className="mt-2 text-[11px] lg:text-xs">
-                          <div><span className="text-muted-foreground">Причина: </span>{reason}</div>
-                          <div className="text-accent flex items-center gap-1 mt-0.5"><ArrowRight className="h-3 w-3" />{action}</div>
-                        </div>
+                        <Link to={`/managers/${m.id}`} className="text-xs text-accent hover:underline shrink-0 inline-flex items-center gap-1">
+                          Профиль <ArrowRight className="h-3 w-3" />
+                        </Link>
                       </div>
-                    );
-                  })}
+                      <div className="mt-2 grid grid-cols-2 lg:grid-cols-4 gap-2 text-[11px]">
+                        <Mini label="Выручка" value={`${formatShort(m.fact)} ₽`} />
+                        <Mini label="Маржа" value={`${m.marginPct}%`} danger={m.marginPct < MIN_MARGIN_PCT} />
+                        <Mini label="Потеря маржи" value={m.marginLoss > 0 ? `${formatShort(m.marginLoss)} ₽` : "—"} danger={m.marginLoss > 0} />
+                        <Mini label="Ниже маржи" value={m.lowMarginDeals ? `${m.lowMarginDeals} сделок` : "—"} danger={m.lowMarginDeals > 0} />
+                      </div>
+                      <div className="mt-2 text-[11px] lg:text-xs">
+                        <div><span className="text-muted-foreground">Причина: </span>{reason}</div>
+                        <div className="text-accent flex items-center gap-1 mt-0.5"><ArrowRight className="h-3 w-3" />{action}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {g.items.length > 5 && (
+                <div className="px-4 py-2 border-t border-border">
+                  <button
+                    type="button"
+                    onClick={() => setVmShowAll(v => !v)}
+                    className="text-xs text-accent hover:underline"
+                  >
+                    {vmShowAll ? "Свернуть" : `Показать ещё ${g.items.length - 5}`}
+                  </button>
                 </div>
               )}
             </div>
