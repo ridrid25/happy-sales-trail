@@ -110,6 +110,8 @@ export default function Managers() {
       return { key, items, sales, marginLoss, avgMargin };
     });
   }, [enriched]);
+  const teamSales = useMemo(() => enriched.reduce((s, m) => s + m.fact, 0), [enriched]);
+  const teamPlan = useMemo(() => enriched.reduce((s, m) => s + m.plan, 0), [enriched]);
   const [vmOpen, setVmOpen] = useState<VMQuad | null>(null);
   const [vmShowAll, setVmShowAll] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(false);
@@ -198,17 +200,25 @@ export default function Managers() {
       <section className="mb-5">
         <div className="flex items-baseline justify-between mb-1 gap-2">
           <h2 className="font-display text-base lg:text-lg font-semibold">Объём продаж × Маржа</h2>
-          <span className="text-[11px] text-muted-foreground shrink-0">маржа: {MIN_MARGIN_PCT}% · объём: от {formatShort(median)} ₽</span>
+          <span className="text-[11px] text-muted-foreground shrink-0" title="Высокий объём = выше медианы менеджеров">маржа: {MIN_MARGIN_PCT}% · объём: от {formatShort(median)} ₽</span>
+        </div>
+        <div className="text-[11px] lg:text-xs text-muted-foreground mb-2">
+          Продажи команды: <span className="num text-foreground">{formatShort(teamSales)} ₽</span>
+          {" · "}план: <span className="num text-foreground">{formatShort(teamPlan)} ₽</span>
+          {" · "}порог маржи: <span className="num text-foreground">{MIN_MARGIN_PCT}%</span>
         </div>
         {(() => {
           const cheap = vmGroups.find(x => x.key === "vmCheap")!;
           if (cheap.items.length > 0) {
+            const share = teamSales ? Math.round(cheap.sales / teamSales * 100) : 0;
             return (
               <p className="text-[12px] lg:text-sm mb-3">
                 <span className="num font-semibold text-destructive">{cheap.items.length}</span>{" "}
                 {cheap.items.length === 1 ? "менеджер даёт" : "менеджера дают"}{" "}
-                <span className="num font-semibold">{formatShort(cheap.sales)} ₽</span> выручки при марже{" "}
-                <span className="num font-semibold text-destructive">{cheap.avgMargin}%</span>.
+                <span className="num font-semibold">{formatShort(cheap.sales)} ₽</span> из{" "}
+                <span className="num">{formatShort(teamSales)} ₽</span> продаж команды
+                {" — "}<span className="num font-semibold text-destructive">{share}%</span> выручки при марже{" "}
+                <span className="num font-semibold text-destructive">{cheap.avgMargin}%</span> (порог {MIN_MARGIN_PCT}%).
                 {cheap.marginLoss > 0 && <> Потери маржи: <span className="num font-semibold text-destructive">{formatShort(cheap.marginLoss)} ₽</span>.</>}
               </p>
             );
@@ -218,13 +228,13 @@ export default function Managers() {
 
         <div className="bg-card rounded-lg border border-border shadow-card divide-y divide-border overflow-hidden">
           {(() => {
-            const maxSales = Math.max(1, ...vmGroups.map(g => g.sales));
             const order: VMQuad[] = ["vmCheap", "vmStars", "vmPotential", "vmWeak"];
             return order.map(key => {
               const g = vmGroups.find(x => x.key === key)!;
               const meta = VM_META[key];
               const isOpen = vmOpen === key;
               const empty = g.items.length === 0;
+              const share = teamSales ? Math.round(g.sales / teamSales * 100) : 0;
               const barTone = key === "vmCheap" ? "bg-destructive" : key === "vmStars" ? "bg-success" : key === "vmPotential" ? "bg-accent" : "bg-muted-foreground/40";
               return (
                 <button
@@ -244,21 +254,32 @@ export default function Managers() {
                       {meta.title}
                     </div>
                     <div className="text-[11px] text-muted-foreground shrink-0 num">
-                      {empty ? "0 менеджеров" : `${g.items.length} ${g.items.length === 1 ? "менеджер" : "менеджеров"}`}
+                      {empty ? "0 менеджеров" : `${g.items.length} ${g.items.length === 1 ? "менеджер" : "менеджеров"} · ${share}% выручки`}
                     </div>
                   </div>
-                  <div className="mt-1.5 h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                    <div className={cn("h-full rounded-full transition-all", barTone)} style={{ width: `${(g.sales / maxSales) * 100}%` }} />
+                  <div className="mt-1.5 h-1.5 w-full bg-muted rounded-full overflow-hidden" title="Доля продаж команды">
+                    <div className={cn("h-full rounded-full transition-all", barTone)} style={{ width: `${share}%` }} />
                   </div>
-                  <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] lg:text-xs">
-                    <span className="num">{formatShort(g.sales)} ₽</span>
-                    <span className="text-muted-foreground">маржа <span className={cn("num text-foreground", !empty && g.avgMargin < MIN_MARGIN_PCT && "text-destructive")}>{empty ? "—" : `${g.avgMargin}%`}</span></span>
-                    <span className="text-muted-foreground">потери <span className={cn("num", g.marginLoss > 0 ? "text-destructive" : "text-foreground")}>{g.marginLoss > 0 ? `${formatShort(g.marginLoss)} ₽` : "—"}</span></span>
+                  <div className="mt-1 text-[10px] text-muted-foreground">Доля продаж команды</div>
+                  <div className="mt-1.5 space-y-0.5 text-[11px] lg:text-xs">
+                    <div>
+                      <span className="num font-medium">{formatShort(g.sales)} ₽</span>
+                      <span className="text-muted-foreground"> из <span className="num">{formatShort(teamSales)} ₽</span> · <span className="num text-foreground">{share}%</span> выручки команды</span>
+                    </div>
+                    <div className="text-muted-foreground">
+                      Маржа <span className={cn("num", !empty && g.avgMargin < MIN_MARGIN_PCT ? "text-destructive" : "text-foreground")}>{empty ? "—" : `${g.avgMargin}%`}</span>
+                      {!empty && (
+                        <> {g.avgMargin < MIN_MARGIN_PCT ? "ниже" : "выше"} порога <span className="num text-foreground">{MIN_MARGIN_PCT}%</span></>
+                      )}
+                      {g.marginLoss > 0 && <> · потери <span className="num text-destructive">{formatShort(g.marginLoss)} ₽</span></>}
+                    </div>
                     {!empty && (
-                      <span className="ml-auto inline-flex items-center gap-1 text-accent font-medium">
-                        {isOpen ? "Скрыть" : "Смотреть менеджеров"}
-                        <ArrowRight className={cn("h-3 w-3 transition-transform", isOpen && "rotate-90")} />
-                      </span>
+                      <div className="pt-0.5">
+                        <span className="inline-flex items-center gap-1 text-accent font-medium">
+                          {isOpen ? "Скрыть" : "Смотреть менеджеров"}
+                          <ArrowRight className={cn("h-3 w-3 transition-transform", isOpen && "rotate-90")} />
+                        </span>
+                      </div>
                     )}
                   </div>
                 </button>
@@ -266,6 +287,7 @@ export default function Managers() {
             });
           })()}
         </div>
+
 
         {vmOpen && (() => {
           const g = vmGroups.find(x => x.key === vmOpen)!;
@@ -278,8 +300,12 @@ export default function Managers() {
                   <div className="text-[11px] text-muted-foreground">Выбрано</div>
                   <div className={cn("font-display font-semibold text-sm", meta.tone)}>{meta.title}</div>
                   <div className="text-[11px] text-muted-foreground mt-0.5">
-                    {g.items.length} {g.items.length === 1 ? "менеджер" : "менеджеров"}
-                    {g.marginLoss > 0 && <> · потери маржи <span className="num text-destructive">{formatShort(g.marginLoss)} ₽</span></>}
+                    {g.items.length} {g.items.length === 1 ? "менеджер" : "менеджеров"} · <span className="num text-foreground">{formatShort(g.sales)} ₽</span>
+                    {teamSales > 0 && <> · <span className="num text-foreground">{Math.round(g.sales / teamSales * 100)}%</span> продаж команды</>}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">
+                    Маржа <span className={cn("num", g.avgMargin < MIN_MARGIN_PCT ? "text-destructive" : "text-foreground")}>{g.avgMargin}%</span>
+                    {g.marginLoss > 0 && <> · потери <span className="num text-destructive">{formatShort(g.marginLoss)} ₽</span></>}
                   </div>
                 </div>
                 <button onClick={() => { setVmOpen(null); setVmShowAll(false); }} className="text-xs text-muted-foreground hover:text-foreground shrink-0">Закрыть</button>
