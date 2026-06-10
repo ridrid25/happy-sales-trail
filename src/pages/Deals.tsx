@@ -243,49 +243,12 @@ export default function Deals() {
                   fill={zoneMeta[z].color}
                   fillOpacity={0.75}
                   stroke={zoneMeta[z].color}
-                  onClick={(p: { id?: string; x?: number; y?: number; amount?: number } | undefined) => {
-                    if (!isMobile || !p?.id) return;
-                    setSelectedPoint({ id: p.id, marginPct: Math.round(p.x ?? 0), idle: Math.round(p.y ?? 0), amount: p.amount ?? 0 });
-                  }}
                 />
               ))}
             </ScatterChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Mobile: карточка выбранной точки или подсказка */}
-        {isMobile && (
-          selectedPoint ? (
-            <div className="mt-3 rounded-lg border-2 border-foreground/15 bg-card p-3">
-              <div className="flex items-start justify-between gap-2 mb-2">
-                <div className="text-[12px] font-semibold uppercase tracking-wide text-foreground">
-                  Сделка {selectedPoint.id.toUpperCase()}
-                </div>
-                <button
-                  onClick={() => setSelectedPoint(null)}
-                  className="text-muted-foreground hover:text-foreground p-1 -m-1 shrink-0"
-                  aria-label="Сбросить"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                <PointStat label="Маржа" value={`${selectedPoint.marginPct}%`} danger={selectedPoint.marginPct < MARGIN_THRESHOLD} />
-                <PointStat label="Без движения" value={`${selectedPoint.idle} дн`} danger={selectedPoint.idle > IDLE_THRESHOLD} />
-                <PointStat label="Сумма" value={`${formatShort(selectedPoint.amount)} ₽`} />
-              </div>
-              <div className="text-[12px] text-foreground mt-2">
-                <span className="text-muted-foreground">Риск: </span>
-                <span className="font-medium">{pointZoneLabel(selectedPoint.marginPct, selectedPoint.idle)}</span>
-              </div>
-            </div>
-          ) : (
-            <div className="mt-3 rounded-md border border-dashed border-border bg-muted/20 px-3 py-2 text-[12px] text-muted-foreground flex items-center gap-2">
-              <MousePointerClick className="h-3.5 w-3.5 shrink-0" />
-              Тапните точку, чтобы увидеть сумму, маржу и дни без движения.
-            </div>
-          )
-        )}
 
         {/* Легенда зон */}
         <div className="grid grid-cols-2 gap-2 mt-3 text-[11px]">
