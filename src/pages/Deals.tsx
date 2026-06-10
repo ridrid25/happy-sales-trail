@@ -229,13 +229,12 @@ export default function Deals() {
               <ReferenceLine x={MARGIN_THRESHOLD} stroke="hsl(var(--muted-foreground))" strokeDasharray="4 4" />
               <ReferenceLine y={IDLE_THRESHOLD}   stroke="hsl(var(--muted-foreground))" strokeDasharray="4 4" />
 
-              {!isMobile && (
-                <Tooltip
-                  cursor={{ strokeDasharray: "3 3" }}
-                  wrapperStyle={{ outline: "none" }}
-                  content={<PointTooltip />}
-                />
-              )}
+              <Tooltip
+                cursor={{ strokeDasharray: "3 3" }}
+                wrapperStyle={{ outline: "none", zIndex: 50 }}
+                content={<PointTooltip />}
+                trigger={isMobile ? "click" : "hover"}
+              />
 
               {(Object.keys(byZone) as ZoneKey[]).map(z => (
                 <Scatter
