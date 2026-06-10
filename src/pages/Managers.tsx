@@ -112,6 +112,8 @@ export default function Managers() {
     });
   }, [enriched]);
   const [vmOpen, setVmOpen] = useState<VMQuad | null>(null);
+  const isMobile = useIsMobile();
+  const [summaryOpen, setSummaryOpen] = useState(false);
 
   // ============== Сводка команды ==============
   const summary = useMemo(() => {
