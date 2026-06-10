@@ -206,7 +206,17 @@ export default function Deals() {
         subtitle={`Маржа × дни без движения · порог ${MARGIN_THRESHOLD}% и ${IDLE_THRESHOLD} дн`}
         className="mb-3"
       >
-        <div ref={chartRef} className="h-[260px] lg:h-[360px] -mx-1 scroll-mt-24">
+        <div
+          ref={chartRef}
+          className="relative h-[260px] lg:h-[360px] -mx-1 scroll-mt-24"
+          onClick={(e) => {
+            // tap on empty chart area (not on a dot) -> close
+            const target = e.target as Element;
+            if (!target.closest(".recharts-scatter-symbol")) {
+              setSelectedPt(null);
+            }
+          }}
+        >
           <ResponsiveContainer width="100%" height="100%">
             <ScatterChart margin={{ top: 8, right: 12, bottom: 28, left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
@@ -231,13 +241,6 @@ export default function Deals() {
               <ReferenceLine x={MARGIN_THRESHOLD} stroke="hsl(var(--muted-foreground))" strokeDasharray="4 4" />
               <ReferenceLine y={IDLE_THRESHOLD}   stroke="hsl(var(--muted-foreground))" strokeDasharray="4 4" />
 
-              <Tooltip
-                cursor={{ strokeDasharray: "3 3" }}
-                wrapperStyle={{ outline: "none", zIndex: 50 }}
-                content={<PointTooltip />}
-                trigger={isMobile ? "click" : "hover"}
-              />
-
               {(Object.keys(byZone) as ZoneKey[]).map(z => (
                 <Scatter
                   key={z}
@@ -245,11 +248,43 @@ export default function Deals() {
                   fill={zoneMeta[z].color}
                   fillOpacity={0.75}
                   stroke={zoneMeta[z].color}
+                  onClick={(d: { id?: string; x?: number; y?: number; amount?: number; cx?: number; cy?: number } | undefined) => {
+                    if (!d?.id || d.cx == null || d.cy == null) return;
+                    setSelectedPt(prev =>
+                      prev && prev.id === d.id
+                        ? null
+                        : { id: d.id!, cx: d.cx!, cy: d.cy!, x: d.x ?? 0, y: d.y ?? 0, amount: d.amount ?? 0 }
+                    );
+                  }}
+                  onMouseEnter={(d: { id?: string; x?: number; y?: number; amount?: number; cx?: number; cy?: number } | undefined) => {
+                    if (isMobile || !d?.id || d.cx == null || d.cy == null) return;
+                    setHoverPt({ id: d.id, cx: d.cx, cy: d.cy, x: d.x ?? 0, y: d.y ?? 0, amount: d.amount ?? 0 });
+                  }}
+                  onMouseLeave={() => { if (!isMobile) setHoverPt(null); }}
                 />
               ))}
             </ScatterChart>
           </ResponsiveContainer>
+
+          {(selectedPt ?? hoverPt) && (() => {
+            const pt = selectedPt ?? hoverPt!;
+            const w = chartRef.current?.clientWidth ?? 0;
+            const tipWidth = 200;
+            let left = pt.cx;
+            let transform = "translate(-50%, -100%)";
+            if (pt.cx + tipWidth / 2 + 8 > w) { left = w - 8; transform = "translate(-100%, -100%)"; }
+            else if (pt.cx - tipWidth / 2 - 8 < 0) { left = 8; transform = "translate(0%, -100%)"; }
+            return (
+              <div
+                className="pointer-events-none absolute z-50"
+                style={{ left, top: Math.max(pt.cy - 12, 4), transform }}
+              >
+                <PointTooltip x={pt.x} y={pt.y} amount={pt.amount} />
+              </div>
+            );
+          })()}
         </div>
+
 
 
         {/* Легенда зон */}
