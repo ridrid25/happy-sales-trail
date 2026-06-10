@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import {
   ScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, ReferenceLine, ReferenceArea,
+  ResponsiveContainer, ReferenceLine, ReferenceArea,
 } from "recharts";
 import {
   deals as allDeals, clients, managers, formatShort, paymentStatusColor,
