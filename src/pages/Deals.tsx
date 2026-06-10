@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid,
   ResponsiveContainer, ReferenceLine, ReferenceArea,
@@ -489,8 +489,51 @@ function DetailPanel({
   const totalSum = all.reduce((s, d) => s + d.amount, 0);
   const action = actionFor(filter);
 
+  const [examplesOpen, setExamplesOpen] = useState(false);
+  const examplesRef = useRef<HTMLDivElement>(null);
+  const panelTopRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { setExamplesOpen(false); }, [filter]);
+
+  const avgMargin = all.length ? all.reduce((s, d) => s + d.marginPct, 0) / all.length : 0;
+  const idles = all.map(daysIdle);
+  const avgIdle = idles.length ? idles.reduce((a, b) => a + b, 0) / idles.length : 0;
+  const maxIdle = idles.length ? Math.max(...idles) : 0;
+  const lostMargin = all.reduce(
+    (s, d) => s + (d.marginPct < MARGIN_THRESHOLD ? ((MARGIN_THRESHOLD - d.marginPct) / 100) * d.amount : 0),
+    0
+  );
+
+  const stats: Array<{ label: string; value: string; danger?: boolean }> = [];
+  if (filter === "critical") {
+    stats.push({ label: "Средняя маржа", value: `${avgMargin.toFixed(1)}%`, danger: avgMargin < MARGIN_THRESHOLD });
+    stats.push({ label: "Средние дни без движения", value: `${Math.round(avgIdle)} дн`, danger: avgIdle > IDLE_THRESHOLD });
+    stats.push({ label: "Потери маржи", value: `${formatShort(lostMargin)} ₽`, danger: true });
+  } else if (filter === "cheap") {
+    stats.push({ label: "Средняя маржа", value: `${avgMargin.toFixed(1)}%`, danger: avgMargin < MARGIN_THRESHOLD });
+    stats.push({ label: "Потери маржи", value: `${formatShort(lostMargin)} ₽`, danger: true });
+  } else if (filter === "stuck") {
+    stats.push({ label: "Средние дни без движения", value: `${Math.round(avgIdle)} дн`, danger: avgIdle > IDLE_THRESHOLD });
+    stats.push({ label: "Максимум без движения", value: `${maxIdle} дн`, danger: maxIdle > IDLE_THRESHOLD });
+  } else if (filter === "payment") {
+    stats.push({ label: "Клиенты с долгом / просрочкой", value: `${all.length} ${pluralDeals(all.length)}` });
+    stats.push({ label: "Сумма потенциального риска", value: `${formatShort(totalSum)} ₽`, danger: true });
+  }
+
+  const openExamples = () => {
+    setExamplesOpen(true);
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      examplesRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }));
+  };
+  const closeExamples = () => {
+    setExamplesOpen(false);
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      panelTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }));
+  };
+
   return (
-    <div className={cn("rounded-lg border p-4", meta.bg, meta.border)}>
+    <div ref={panelTopRef} className={cn("rounded-lg border p-4 scroll-mt-24", meta.bg, meta.border)}>
       <div className="flex items-start justify-between gap-3 mb-1">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
@@ -510,24 +553,51 @@ function DetailPanel({
         </button>
       </div>
 
-      <div className="mt-2 text-[12px] rounded-md border border-border bg-card/60 px-2.5 py-1.5">
+      {stats.length > 0 && (
+        <div className="grid grid-cols-2 gap-2 mt-3">
+          {stats.map(s => (
+            <div key={s.label} className="rounded-md border border-border bg-card px-2.5 py-2">
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{s.label}</div>
+              <div className={cn("num font-semibold text-[14px] mt-0.5", s.danger && "text-destructive")}>{s.value}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="mt-3 text-[12px] rounded-md border border-border bg-card/60 px-2.5 py-1.5">
         <span className="text-muted-foreground">Действие: </span>{action}
       </div>
 
-      {deals.length === 0 ? (
-        <div className="text-[12px] text-muted-foreground mt-3">Сделок в этой зоне нет.</div>
-      ) : (
-        <div className="mt-3 space-y-2">
-          {deals.map(d => <DealRow key={d.id} d={d} filter={filter} />)}
-          {!shownAll && total > deals.length && (
-            <button
-              onClick={onShowAll}
-              className="w-full text-xs px-3 py-2 rounded-md border border-border bg-card hover:bg-muted/40"
-            >
-              Показать ещё {total - deals.length}
-            </button>
-          )}
-        </div>
+      {all.length > 0 && (
+        !examplesOpen ? (
+          <button
+            onClick={openExamples}
+            className="mt-3 w-full text-[12px] font-medium px-3 py-2 rounded-md border border-border bg-card hover:bg-muted/40"
+          >
+            Показать примеры сделок
+          </button>
+        ) : (
+          <div ref={examplesRef} className="mt-3 scroll-mt-24">
+            <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2">Примеры сделок</div>
+            <div className="space-y-2">
+              {deals.map(d => <DealRow key={d.id} d={d} filter={filter} />)}
+              {!shownAll && total > deals.length && (
+                <button
+                  onClick={onShowAll}
+                  className="w-full text-xs px-3 py-2 rounded-md border border-border bg-card hover:bg-muted/40"
+                >
+                  Показать ещё {Math.min(5, total - deals.length)} из {total - deals.length}
+                </button>
+              )}
+              <button
+                onClick={closeExamples}
+                className="w-full text-[12px] px-3 py-2 rounded-md border border-border bg-card hover:bg-muted/40 text-muted-foreground"
+              >
+                Скрыть примеры
+              </button>
+            </div>
+          </div>
+        )
       )}
 
       <button
