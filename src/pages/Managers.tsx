@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { managers, formatShort, riskColor, type Manager } from "@/data/demo";
 import { Card, PageHeader, Badge, ProgressBar } from "@/components/ui-bits";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ChevronDown, ChevronRight, Search, Star, AlertTriangle,
   TrendingDown, Clock, PauseCircle, ShieldAlert, Users, ArrowRight,
@@ -132,24 +132,40 @@ export default function Managers() {
   // Универсальные helpers: проскролл к открытому контенту / возврат к триггеру
   const scrollToEl = (el: HTMLElement | null) => {
     if (!el) return;
+    // двойной rAF гарантирует, что элемент уже отрисован после смены state
     requestAnimationFrame(() => {
-      setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "start" }), 30);
+      requestAnimationFrame(() => {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
     });
   };
+  // Запоминаем триггер, к которому надо вернуться при закрытии
+  const vmReturnRef = useRef<HTMLElement | null>(null);
+  const prioReturnRef = useRef<HTMLElement | null>(null);
+  // После открытия панели — скроллим к ней (когда DOM уже отрисовал)
+  useEffect(() => {
+    if (vmOpen) scrollToEl(vmPanelRef.current);
+  }, [vmOpen]);
+  useEffect(() => {
+    if (prioOpen) scrollToEl(prioContentRef.current);
+  }, [prioOpen]);
+
   const openVm = (key: VMQuad) => {
     const isOpen = vmOpen === key;
     if (isOpen) {
+      const trigger = vmRowRefs.current[key];
       setVmOpen(null);
       setVmShowAll(false);
-      scrollToEl(vmRowRefs.current[key]);
+      scrollToEl(trigger);
     } else {
+      vmReturnRef.current = vmRowRefs.current[key];
       setVmOpen(key);
       setVmShowAll(false);
-      scrollToEl(vmPanelRef.current);
+      // скролл сработает в useEffect, когда панель появится в DOM
     }
   };
   const closeVm = () => {
-    const trigger = vmOpen ? vmRowRefs.current[vmOpen] : null;
+    const trigger = (vmOpen && vmRowRefs.current[vmOpen]) || vmReturnRef.current;
     setVmOpen(null);
     setVmShowAll(false);
     scrollToEl(trigger);
@@ -157,21 +173,23 @@ export default function Managers() {
   const openPrio = (key: PriorityKey) => {
     const isOpen = prioOpen === key;
     if (isOpen) {
+      const trigger = prioRowRefs.current[key];
       setPrioOpen(null);
       setPrioShowAll(false);
-      scrollToEl(prioRowRefs.current[key]);
+      scrollToEl(trigger);
     } else {
+      prioReturnRef.current = prioRowRefs.current[key];
       setPrioOpen(key);
       setPrioShowAll(false);
-      scrollToEl(prioContentRef.current);
     }
   };
   const closePrio = () => {
-    const trigger = prioOpen ? prioRowRefs.current[prioOpen] : null;
+    const trigger = (prioOpen && prioRowRefs.current[prioOpen]) || prioReturnRef.current;
     setPrioOpen(null);
     setPrioShowAll(false);
     scrollToEl(trigger);
   };
+
 
   // ============== Сводка команды ==============
   const summary = useMemo(() => {
@@ -301,7 +319,7 @@ export default function Managers() {
                   disabled={empty}
                   onClick={() => openVm(key)}
                   className={cn(
-                    "w-full text-left px-3 py-2.5 lg:px-4 lg:py-3 transition-colors scroll-mt-4",
+                    "w-full text-left px-3 py-2.5 lg:px-4 lg:py-3 transition-colors scroll-mt-24",
                     !empty && "hover:bg-muted/30",
                     isOpen && "bg-muted/40",
                     empty && "opacity-60 cursor-default"
@@ -355,7 +373,7 @@ export default function Managers() {
             <div
               ref={vmPanelRef}
               key={vmOpen}
-              className="mt-3 bg-card rounded-lg border-2 border-accent/40 shadow-card scroll-mt-4 animate-in fade-in slide-in-from-top-2 duration-300"
+              className="mt-3 bg-card rounded-lg border-2 border-accent/40 shadow-card scroll-mt-24 animate-in fade-in slide-in-from-top-2 duration-300"
             >
               <div className="px-4 py-3 border-b border-border flex items-start justify-between gap-2">
                 <div className="min-w-0">
@@ -511,7 +529,7 @@ export default function Managers() {
                       disabled={empty}
                       onClick={() => openPrio(k)}
                       className={cn(
-                        "w-full text-left px-3 py-2.5 lg:px-4 lg:py-3 transition-colors scroll-mt-4",
+                        "w-full text-left px-3 py-2.5 lg:px-4 lg:py-3 transition-colors scroll-mt-24",
                         !empty && "hover:bg-muted/30",
                         isOpen && "bg-muted/40",
                         empty && "opacity-60 cursor-default"
@@ -546,7 +564,7 @@ export default function Managers() {
                   <div
                     ref={prioContentRef}
                     key={prioOpen}
-                    className="mt-3 bg-card rounded-lg border-2 border-accent/40 shadow-card scroll-mt-4 animate-in fade-in slide-in-from-top-2 duration-300"
+                    className="mt-3 bg-card rounded-lg border-2 border-accent/40 shadow-card scroll-mt-24 animate-in fade-in slide-in-from-top-2 duration-300"
                   >
                     <div className="px-4 py-3 border-b border-border flex items-start justify-between gap-2">
                       <div className="min-w-0">
@@ -657,7 +675,7 @@ export default function Managers() {
                   </div>
                 </div>
 
-                <div ref={moreContentRef} className="p-3 lg:p-4 scroll-mt-4">
+                <div ref={moreContentRef} className="p-3 lg:p-4 scroll-mt-24">
                   {moreTab === "summary" && (
                     <div>
                       <h3 className="font-display font-semibold text-sm mb-2">Сводка команды</h3>
