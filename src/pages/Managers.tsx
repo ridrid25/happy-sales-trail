@@ -115,6 +115,9 @@ export default function Managers() {
   const [vmOpen, setVmOpen] = useState<VMQuad | null>(null);
   const [vmShowAll, setVmShowAll] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(false);
+  const [quadOpen, setQuadOpen] = useState(false);
+  const [segOpen, setSegOpen] = useState(false);
+  const [relOpen, setRelOpen] = useState(false);
 
   // ============== Сводка команды ==============
   const summary = useMemo(() => {
