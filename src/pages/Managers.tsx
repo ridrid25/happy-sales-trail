@@ -643,27 +643,45 @@ export default function Managers() {
 
         <div className={cn("mt-3 lg:mt-0", !moreOpen && "hidden lg:block")}>
           {(() => {
-            const tabs: { key: MoreKey; label: string }[] = [
-              { key: "summary", label: "Сводка" },
-              { key: "quad",    label: "Объём × качество" },
-              { key: "seg",     label: "Сегменты" },
-              { key: "rel",     label: "Взаимосвязи" },
-              { key: "all",     label: "Все менеджеры" },
+            const tabs: { key: MoreKey; short: string; label: string }[] = [
+              { key: "summary", short: "Сводка",   label: "Сводка команды" },
+              { key: "quad",    short: "Качество", label: "Объём × качество" },
+              { key: "seg",     short: "Сегменты", label: "Сегменты" },
+              { key: "rel",     short: "Связи",    label: "Взаимосвязи показателей" },
+              { key: "all",     short: "Все",      label: "Все менеджеры" },
             ];
+            const onPick = (k: MoreKey) => {
+              setMoreTab(k);
+              requestAnimationFrame(() => requestAnimationFrame(() => {
+                moreContentRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }));
+            };
             return (
               <div className="bg-card rounded-lg border border-border shadow-card overflow-hidden">
-                <div className="border-b border-border p-2 overflow-x-auto">
-                  <div className="flex gap-1.5 min-w-max">
+                {/* Mobile: компактный select */}
+                <div className="lg:hidden border-b border-border p-2 flex items-center gap-2">
+                  <label htmlFor="more-tab-select" className="text-[11px] text-muted-foreground shrink-0">Раздел:</label>
+                  <select
+                    id="more-tab-select"
+                    value={moreTab}
+                    onChange={e => onPick(e.target.value as MoreKey)}
+                    className="flex-1 min-w-0 bg-background border border-border rounded-md px-2 py-1.5 text-xs"
+                  >
+                    {tabs.map(t => (
+                      <option key={t.key} value={t.key}>{t.short}</option>
+                    ))}
+                  </select>
+                </div>
+                {/* Desktop: табы */}
+                <div className="hidden lg:block border-b border-border p-2">
+                  <div className="flex flex-wrap gap-1.5">
                     {tabs.map(t => (
                       <button
                         key={t.key}
                         type="button"
-                        onClick={() => {
-                          setMoreTab(t.key);
-                          setTimeout(() => moreContentRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
-                        }}
+                        onClick={() => onPick(t.key)}
                         className={cn(
-                          "px-3 py-1.5 rounded-md text-xs border transition-colors whitespace-nowrap",
+                          "px-3 py-1.5 rounded-md text-xs border transition-colors",
                           moreTab === t.key
                             ? "bg-accent text-accent-foreground border-accent"
                             : "bg-background border-border hover:bg-muted/40"
@@ -674,6 +692,7 @@ export default function Managers() {
                     ))}
                   </div>
                 </div>
+
 
                 <div ref={moreContentRef} className="p-3 lg:p-4 scroll-mt-24">
                   {moreTab === "summary" && (
