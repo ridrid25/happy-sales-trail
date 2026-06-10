@@ -8,7 +8,7 @@ import {
   type Deal,
 } from "@/data/demo";
 import { Card, PageHeader, Badge, EmptyState } from "@/components/ui-bits";
-import { Filter, SearchX, ChevronDown, ChevronUp, ArrowUp, X, MousePointerClick } from "lucide-react";
+import { Filter, SearchX, ChevronDown, ChevronUp, ArrowUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -117,7 +117,7 @@ export default function Deals() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailGroup, setDetailGroup] = useState<FilterKey | null>(null);
   const [detailShownAll, setDetailShownAll] = useState(false);
-  const [selectedPoint, setSelectedPoint] = useState<{ id: string; marginPct: number; idle: number; amount: number } | null>(null);
+  
 
   const chartRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -229,13 +229,12 @@ export default function Deals() {
               <ReferenceLine x={MARGIN_THRESHOLD} stroke="hsl(var(--muted-foreground))" strokeDasharray="4 4" />
               <ReferenceLine y={IDLE_THRESHOLD}   stroke="hsl(var(--muted-foreground))" strokeDasharray="4 4" />
 
-              {!isMobile && (
-                <Tooltip
-                  cursor={{ strokeDasharray: "3 3" }}
-                  wrapperStyle={{ outline: "none" }}
-                  content={<PointTooltip />}
-                />
-              )}
+              <Tooltip
+                cursor={{ strokeDasharray: "3 3" }}
+                wrapperStyle={{ outline: "none", zIndex: 50 }}
+                content={<PointTooltip />}
+                trigger={isMobile ? "click" : "hover"}
+              />
 
               {(Object.keys(byZone) as ZoneKey[]).map(z => (
                 <Scatter
@@ -244,49 +243,12 @@ export default function Deals() {
                   fill={zoneMeta[z].color}
                   fillOpacity={0.75}
                   stroke={zoneMeta[z].color}
-                  onClick={(p: { id?: string; x?: number; y?: number; amount?: number } | undefined) => {
-                    if (!isMobile || !p?.id) return;
-                    setSelectedPoint({ id: p.id, marginPct: Math.round(p.x ?? 0), idle: Math.round(p.y ?? 0), amount: p.amount ?? 0 });
-                  }}
                 />
               ))}
             </ScatterChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Mobile: карточка выбранной точки или подсказка */}
-        {isMobile && (
-          selectedPoint ? (
-            <div className="mt-3 rounded-lg border-2 border-foreground/15 bg-card p-3">
-              <div className="flex items-start justify-between gap-2 mb-2">
-                <div className="text-[12px] font-semibold uppercase tracking-wide text-foreground">
-                  Сделка {selectedPoint.id.toUpperCase()}
-                </div>
-                <button
-                  onClick={() => setSelectedPoint(null)}
-                  className="text-muted-foreground hover:text-foreground p-1 -m-1 shrink-0"
-                  aria-label="Сбросить"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                <PointStat label="Маржа" value={`${selectedPoint.marginPct}%`} danger={selectedPoint.marginPct < MARGIN_THRESHOLD} />
-                <PointStat label="Без движения" value={`${selectedPoint.idle} дн`} danger={selectedPoint.idle > IDLE_THRESHOLD} />
-                <PointStat label="Сумма" value={`${formatShort(selectedPoint.amount)} ₽`} />
-              </div>
-              <div className="text-[12px] text-foreground mt-2">
-                <span className="text-muted-foreground">Риск: </span>
-                <span className="font-medium">{pointZoneLabel(selectedPoint.marginPct, selectedPoint.idle)}</span>
-              </div>
-            </div>
-          ) : (
-            <div className="mt-3 rounded-md border border-dashed border-border bg-muted/20 px-3 py-2 text-[12px] text-muted-foreground flex items-center gap-2">
-              <MousePointerClick className="h-3.5 w-3.5 shrink-0" />
-              Тапните точку, чтобы увидеть сумму, маржу и дни без движения.
-            </div>
-          )
-        )}
 
         {/* Легенда зон */}
         <div className="grid grid-cols-2 gap-2 mt-3 text-[11px]">
@@ -442,15 +404,6 @@ export default function Deals() {
   );
 }
 
-function PointStat({ label, value, danger }: { label: string; value: string; danger?: boolean }) {
-  return (
-    <div className="rounded-md bg-background border border-border px-2 py-1.5 min-w-0">
-      <div className="text-[10px] text-muted-foreground uppercase tracking-wide truncate">{label}</div>
-      <div className={cn("num font-semibold text-[13px] leading-tight text-foreground break-words", danger && "text-destructive")}>{value}</div>
-    </div>
-  );
-}
-
 type PointPayload = { id?: string; x?: number; y?: number; amount?: number };
 function PointTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: PointPayload }> }) {
   if (!active || !payload?.length) return null;
@@ -460,19 +413,32 @@ function PointTooltip({ active, payload }: { active?: boolean; payload?: Array<{
   const amount = p.amount ?? 0;
   const id = (p.id ?? "").toUpperCase();
   return (
-    <div className="rounded-lg border-2 border-foreground/20 bg-card shadow-elevated p-3 min-w-[200px]">
-      <div className="text-[12px] font-semibold uppercase tracking-wide text-foreground mb-2">
+    <div
+      className="rounded-[10px] shadow-elevated px-3 py-2.5 text-[12px] leading-tight max-w-[220px]"
+      style={{
+        background: "hsl(222 38% 12%)",
+        border: "1px solid hsl(0 0% 100% / 0.18)",
+        color: "hsl(0 0% 100%)",
+      }}
+    >
+      <div className="font-semibold uppercase tracking-wide mb-1.5" style={{ color: "hsl(0 0% 100%)" }}>
         Сделка {id}
       </div>
-      <div className="grid grid-cols-3 gap-2">
-        <PointStat label="Маржа" value={`${margin}%`} danger={margin < MARGIN_THRESHOLD} />
-        <PointStat label="Без движения" value={`${idle} дн`} danger={idle > IDLE_THRESHOLD} />
-        <PointStat label="Сумма" value={`${formatShort(amount)} ₽`} />
+      <div className="space-y-1 num">
+        <Row label="Сумма" value={`${formatShort(amount)} ₽`} />
+        <Row label="Маржа" value={`${margin}%`} danger={margin < MARGIN_THRESHOLD} />
+        <Row label="Без движения" value={`${idle} дн`} danger={idle > IDLE_THRESHOLD} />
+        <Row label="Риск" value={pointZoneLabel(margin, idle)} />
       </div>
-      <div className="text-[12px] text-foreground mt-2">
-        <span className="text-muted-foreground">Риск: </span>
-        <span className="font-medium">{pointZoneLabel(margin, idle)}</span>
-      </div>
+    </div>
+  );
+}
+
+function Row({ label, value, danger }: { label: string; value: string; danger?: boolean }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3">
+      <span style={{ color: "hsl(220 18% 78%)" }}>{label}:</span>
+      <span className="font-semibold text-right" style={{ color: danger ? "hsl(0 90% 72%)" : "hsl(0 0% 100%)" }}>{value}</span>
     </div>
   );
 }
