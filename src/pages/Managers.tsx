@@ -61,6 +61,23 @@ const QUADRANTS: Record<Quadrant, { title: string; hint: string; tone: string; b
   weak:      { title: "Слабая зона",            hint: "Низкий объём + низкое качество",    tone: "text-muted-foreground", border: "border-border" },
 };
 
+// ============== Матрица «Объём × Маржа» ==============
+type VMQuad = "vmStars" | "vmCheap" | "vmPotential" | "vmWeak";
+function vmQuadrant(m: Manager, median: number): VMQuad {
+  const highVol = m.fact >= median;
+  const highMargin = m.marginPct >= MIN_MARGIN_PCT;
+  if (highVol && highMargin) return "vmStars";
+  if (highVol && !highMargin) return "vmCheap";
+  if (!highVol && highMargin) return "vmPotential";
+  return "vmWeak";
+}
+const VM_META: Record<VMQuad, { title: string; hint: string; conclusion: string; action: string; tone: string; border: string; bg: string }> = {
+  vmStars:     { title: "Много и прибыльно",  hint: `Высокий объём + маржа ≥ ${MIN_MARGIN_PCT}%`,  conclusion: "сильный подход — есть что масштабировать", action: "масштабировать практики этих менеджеров", tone: "text-success",     border: "border-success/40",     bg: "bg-success/5" },
+  vmCheap:     { title: "Много, но дёшево",    hint: `Высокий объём + маржа < ${MIN_MARGIN_PCT}%`,  conclusion: "оборот есть, прибыльность проседает",       action: "проверить скидки и ограничить продажи ниже минимальной маржи", tone: "text-destructive", border: "border-destructive/40", bg: "bg-destructive/5" },
+  vmPotential: { title: "Мало, но прибыльно", hint: `Низкий объём + маржа ≥ ${MIN_MARGIN_PCT}%`,  conclusion: "качественная продажа, но мало объёма",      action: "масштабировать подход и увеличить поток лидов", tone: "text-accent",      border: "border-accent/40",      bg: "bg-accent/5" },
+  vmWeak:      { title: "Мало и слабо",         hint: `Низкий объём + маржа < ${MIN_MARGIN_PCT}%`,  conclusion: "и оборот, и маржа ниже нормы",              action: "разобрать сделки ниже 20% и пересмотреть план", tone: "text-muted-foreground", border: "border-border",   bg: "" },
+};
+
 export default function Managers() {
   // Медиана выручки — порог «высокого объёма»
   const median = useMemo(() => {
@@ -73,12 +90,27 @@ export default function Managers() {
     ...m,
     segment: classify(m, median),
     quadrant: quadrant(m, median),
+    vmQuad: vmQuadrant(m, median),
     paidRatio: m.paid / Math.max(m.fact, 1),
     marginLoss: m.marginPct < MIN_MARGIN_PCT
       ? Math.round((MIN_MARGIN_PCT - m.marginPct) / 100 * m.fact)
       : 0,
     paymentsGap: Math.max(0, m.fact - m.paid),
   })), [median]);
+
+  // ============== Группы «Объём × Маржа» ==============
+  const vmGroups = useMemo(() => {
+    return (["vmStars", "vmCheap", "vmPotential", "vmWeak"] as VMQuad[]).map(key => {
+      const items = enriched.filter(m => m.vmQuad === key);
+      const sales = items.reduce((s, m) => s + m.fact, 0);
+      const marginLoss = items.reduce((s, m) => s + m.marginLoss, 0);
+      const avgMargin = items.length
+        ? Math.round(items.reduce((s, m) => s + m.marginPct, 0) / items.length)
+        : 0;
+      return { key, items, sales, marginLoss, avgMargin };
+    });
+  }, [enriched]);
+  const [vmOpen, setVmOpen] = useState<VMQuad | null>(null);
 
   // ============== Сводка команды ==============
   const summary = useMemo(() => {
@@ -170,7 +202,116 @@ export default function Managers() {
         </div>
       </section>
 
-      {/* 2. Матрица Объём × Качество */}
+      {/* 2. Матрица Объём × Маржа */}
+      <section className="mb-5">
+        <div className="flex items-baseline justify-between mb-1">
+          <h2 className="font-display text-base lg:text-lg font-semibold">Объём продаж × Маржа</h2>
+          <span className="text-[11px] text-muted-foreground">порог объёма: {formatShort(median)} ₽</span>
+        </div>
+        <p className="text-[11px] lg:text-xs text-muted-foreground mb-3">
+          Кто приносит прибыльный объём, а кто создаёт оборот без нормальной маржи. Минимальная маржа — {MIN_MARGIN_PCT}%.
+        </p>
+        <div className="grid grid-cols-2 gap-2 lg:gap-3">
+          {vmGroups.map(g => {
+            const meta = VM_META[g.key];
+            const isOpen = vmOpen === g.key;
+            return (
+              <button
+                key={g.key}
+                type="button"
+                onClick={() => setVmOpen(isOpen ? null : g.key)}
+                className={cn(
+                  "text-left bg-card rounded-lg border-2 p-3 lg:p-4 shadow-card transition-colors hover:bg-muted/30",
+                  meta.border, meta.bg, isOpen && "ring-2 ring-accent/40"
+                )}
+              >
+                <div className={cn("font-display font-semibold text-sm lg:text-base", meta.tone)}>{meta.title}</div>
+                <div className="text-[10px] lg:text-xs text-muted-foreground mt-0.5 leading-tight">{meta.hint}</div>
+                <div className="mt-2 num font-display text-2xl font-semibold">{g.items.length}</div>
+                <div className="text-[11px] text-muted-foreground">менеджеров</div>
+                <div className="mt-2 space-y-0.5 text-[11px] lg:text-xs">
+                  <div className="flex justify-between"><span className="text-muted-foreground">Выручка</span><span className="num">{formatShort(g.sales)} ₽</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Ср. маржа</span><span className={cn("num", g.items.length && g.avgMargin < MIN_MARGIN_PCT && "text-destructive")}>{g.items.length ? `${g.avgMargin}%` : "—"}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Потеря маржи</span><span className={cn("num", g.marginLoss > 0 && "text-destructive")}>{g.marginLoss > 0 ? `${formatShort(g.marginLoss)} ₽` : "—"}</span></div>
+                </div>
+                {g.items.length > 0 && (
+                  <div className="mt-2 pt-2 border-t border-border/60 space-y-0.5">
+                    {g.items.slice(0, 2).map(m => (
+                      <div key={m.id} className="text-[11px] lg:text-xs truncate">{m.name}</div>
+                    ))}
+                    {g.items.length > 2 && <div className="text-[10px] text-muted-foreground">+ ещё {g.items.length - 2}</div>}
+                  </div>
+                )}
+                <div className="mt-2 text-[11px] lg:text-xs leading-snug">
+                  <div><span className="text-muted-foreground">Вывод: </span>{meta.conclusion}</div>
+                  <div className="mt-0.5 flex items-start gap-1 text-accent">
+                    <ArrowRight className="h-3 w-3 mt-0.5 shrink-0" />
+                    <span>{meta.action}</span>
+                  </div>
+                </div>
+                <div className="mt-2 text-[10px] text-muted-foreground flex items-center gap-1">
+                  <ChevronDown className={cn("h-3 w-3 transition-transform", isOpen && "rotate-180")} />
+                  {isOpen ? "Скрыть менеджеров" : "Показать менеджеров"}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+        {vmOpen && (() => {
+          const g = vmGroups.find(x => x.key === vmOpen)!;
+          const meta = VM_META[vmOpen];
+          return (
+            <div className="mt-3 bg-card rounded-lg border border-border shadow-card">
+              <div className="px-4 py-3 border-b border-border flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <div className={cn("font-display font-semibold text-sm", meta.tone)}>{meta.title}</div>
+                  <div className="text-[11px] text-muted-foreground truncate">{meta.action}</div>
+                </div>
+                <button onClick={() => setVmOpen(null)} className="text-xs text-muted-foreground hover:text-foreground shrink-0">Закрыть</button>
+              </div>
+              {g.items.length === 0 ? (
+                <div className="p-4 text-sm text-muted-foreground">В этом сегменте никого нет.</div>
+              ) : (
+                <div className="divide-y divide-border">
+                  {g.items.map(m => {
+                    const reason = m.marginPct < MIN_MARGIN_PCT
+                      ? `${m.lowMarginDeals || "несколько"} сделок ниже минимальной маржи`
+                      : m.fact >= median ? "высокий объём при марже выше порога" : "маржа в норме, объём ниже медианы";
+                    const action = m.marginPct < MIN_MARGIN_PCT
+                      ? "проверить скидки и условия"
+                      : m.fact >= median ? "закрепить условия и масштабировать" : "увеличить поток лидов";
+                    return (
+                      <div key={m.id} className="p-3 lg:p-4">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="font-medium truncate">{m.name}</div>
+                            <div className="text-[11px] text-muted-foreground">{m.title}</div>
+                          </div>
+                          <Link to={`/managers/${m.id}`} className="text-xs text-accent hover:underline shrink-0 inline-flex items-center gap-1">
+                            Профиль <ArrowRight className="h-3 w-3" />
+                          </Link>
+                        </div>
+                        <div className="mt-2 grid grid-cols-2 lg:grid-cols-4 gap-2 text-[11px]">
+                          <Mini label="Выручка" value={`${formatShort(m.fact)} ₽`} />
+                          <Mini label="Маржа" value={`${m.marginPct}%`} danger={m.marginPct < MIN_MARGIN_PCT} />
+                          <Mini label="Потеря маржи" value={m.marginLoss > 0 ? `${formatShort(m.marginLoss)} ₽` : "—"} danger={m.marginLoss > 0} />
+                          <Mini label="Ниже маржи" value={m.lowMarginDeals ? `${m.lowMarginDeals} сделок` : "—"} danger={m.lowMarginDeals > 0} />
+                        </div>
+                        <div className="mt-2 text-[11px] lg:text-xs">
+                          <div><span className="text-muted-foreground">Причина: </span>{reason}</div>
+                          <div className="text-accent flex items-center gap-1 mt-0.5"><ArrowRight className="h-3 w-3" />{action}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })()}
+      </section>
+
+      {/* 3. Матрица Объём × Качество */}
       <section className="mb-5">
         <div className="flex items-baseline justify-between mb-3">
           <h2 className="font-display text-base lg:text-lg font-semibold">Матрица «Объём × Качество»</h2>
@@ -292,13 +433,6 @@ export default function Managers() {
       <section className="mb-5">
         <h2 className="font-display text-base lg:text-lg font-semibold mb-3">Взаимосвязи показателей</h2>
         <div className="grid gap-2 lg:gap-3 lg:grid-cols-2">
-          <RelationCard
-            icon={<TrendingDown className="h-4 w-4 text-warning" />}
-            title="Выручка vs маржа"
-            insight={`${summary.lowMargin} менеджеров продают ниже порога маржи ${MIN_MARGIN_PCT}%`}
-            people={enriched.filter(m => m.marginPct < MIN_MARGIN_PCT).slice(0, 3)}
-            action="ограничить скидки ниже минимальной маржи"
-          />
           <RelationCard
             icon={<ShieldAlert className="h-4 w-4 text-destructive" />}
             title="Выручка vs оплаченная выручка"
