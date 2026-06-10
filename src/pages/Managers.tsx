@@ -61,6 +61,23 @@ const QUADRANTS: Record<Quadrant, { title: string; hint: string; tone: string; b
   weak:      { title: "Слабая зона",            hint: "Низкий объём + низкое качество",    tone: "text-muted-foreground", border: "border-border" },
 };
 
+// ============== Матрица «Объём × Маржа» ==============
+type VMQuad = "vmStars" | "vmCheap" | "vmPotential" | "vmWeak";
+function vmQuadrant(m: Manager, median: number): VMQuad {
+  const highVol = m.fact >= median;
+  const highMargin = m.marginPct >= MIN_MARGIN_PCT;
+  if (highVol && highMargin) return "vmStars";
+  if (highVol && !highMargin) return "vmCheap";
+  if (!highVol && highMargin) return "vmPotential";
+  return "vmWeak";
+}
+const VM_META: Record<VMQuad, { title: string; hint: string; conclusion: string; action: string; tone: string; border: string; bg: string }> = {
+  vmStars:     { title: "Много и прибыльно",  hint: `Высокий объём + маржа ≥ ${MIN_MARGIN_PCT}%`,  conclusion: "сильный подход — есть что масштабировать", action: "масштабировать практики этих менеджеров", tone: "text-success",     border: "border-success/40",     bg: "bg-success/5" },
+  vmCheap:     { title: "Много, но дёшево",    hint: `Высокий объём + маржа < ${MIN_MARGIN_PCT}%`,  conclusion: "оборот есть, прибыльность проседает",       action: "проверить скидки и ограничить продажи ниже минимальной маржи", tone: "text-destructive", border: "border-destructive/40", bg: "bg-destructive/5" },
+  vmPotential: { title: "Мало, но прибыльно", hint: `Низкий объём + маржа ≥ ${MIN_MARGIN_PCT}%`,  conclusion: "качественная продажа, но мало объёма",      action: "масштабировать подход и увеличить поток лидов", tone: "text-accent",      border: "border-accent/40",      bg: "bg-accent/5" },
+  vmWeak:      { title: "Мало и слабо",         hint: `Низкий объём + маржа < ${MIN_MARGIN_PCT}%`,  conclusion: "и оборот, и маржа ниже нормы",              action: "разобрать сделки ниже 20% и пересмотреть план", tone: "text-muted-foreground", border: "border-border",   bg: "" },
+};
+
 export default function Managers() {
   // Медиана выручки — порог «высокого объёма»
   const median = useMemo(() => {
