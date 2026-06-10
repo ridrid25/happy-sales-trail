@@ -362,7 +362,64 @@ export default function Managers() {
         })()}
       </section>
 
-      {/* 2. Сводка команды — вторичный блок, свёрнут на mobile */}
+      {/* 2. Топ-5 для разбора */}
+      <section className="mb-5">
+        <div className="flex items-baseline justify-between gap-2 mb-3">
+          <h2 className="font-display text-base lg:text-lg font-semibold">Топ-5 для разбора</h2>
+          <div className="hidden lg:flex flex-wrap gap-1.5">
+            {(Object.keys(topMeta) as (keyof typeof topMeta)[]).map(k => (
+              <button
+                key={k}
+                onClick={() => setTopTab(k)}
+                className={cn(
+                  "px-3 py-1.5 rounded-md text-xs border transition-colors",
+                  topTab === k ? "bg-accent text-accent-foreground border-accent" : "bg-card border-border hover:bg-muted/40"
+                )}
+              >
+                {topMeta[k].label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="lg:hidden mb-3 flex items-center gap-2">
+          <span className="text-[11px] text-muted-foreground shrink-0">Показатель:</span>
+          <select
+            value={topTab}
+            onChange={e => setTopTab(e.target.value as typeof topTab)}
+            className="flex-1 text-sm bg-background border border-border rounded-md px-2.5 py-1.5"
+          >
+            {(Object.keys(topMeta) as (keyof typeof topMeta)[]).map(k => (
+              <option key={k} value={k}>{topMeta[k].label}</option>
+            ))}
+          </select>
+        </div>
+        <div className="bg-card rounded-lg border border-border shadow-card divide-y divide-border">
+          {topMap[topTab].length === 0 ? (
+            <div className="p-4 text-sm text-muted-foreground">Нет менеджеров по этому критерию.</div>
+          ) : topMap[topTab].map((m, i) => {
+            const meta = topMeta[topTab];
+            return (
+              <Link key={m.id} to={`/managers/${m.id}`} className="flex items-start gap-3 p-3 lg:p-4 hover:bg-muted/30">
+                <div className="text-xs text-muted-foreground num w-5 pt-0.5">{i + 1}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="font-medium truncate">{m.name}</div>
+                    <Badge className={riskColor[m.risk]}>{m.risk}</Badge>
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5">{meta.problem(m)}</div>
+                  <div className="text-sm num mt-1 font-semibold">{meta.sum(m)}</div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">
+                    Причина: {meta.cause(m)} · Действие: {meta.action}
+                  </div>
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* 3. Сводка команды — свёрнута на mobile */}
       <section className="mb-5">
         <button
           type="button"
@@ -392,14 +449,23 @@ export default function Managers() {
         </div>
       </section>
 
-
-      {/* 3. Матрица Объём × Качество */}
+      {/* 4. Матрица Объём × Качество — свёрнута на mobile */}
       <section className="mb-5">
-        <div className="flex items-baseline justify-between mb-3">
-          <h2 className="font-display text-base lg:text-lg font-semibold">Матрица «Объём × Качество»</h2>
-          <span className="text-[11px] text-muted-foreground">порог объёма: {formatShort(median)} ₽</span>
-        </div>
-        <div className="grid grid-cols-2 gap-2 lg:gap-3">
+        <button
+          type="button"
+          onClick={() => setQuadOpen(o => !o)}
+          className="w-full flex items-center justify-between gap-2 mb-3 lg:cursor-default"
+        >
+          <div className="flex items-baseline gap-2 min-w-0">
+            <h2 className="font-display text-base lg:text-lg font-semibold truncate">Дополнительная матрица: объём × качество</h2>
+            <span className="hidden lg:inline text-[11px] text-muted-foreground">порог объёма: {formatShort(median)} ₽</span>
+          </div>
+          <span className="lg:hidden text-[11px] text-muted-foreground inline-flex items-center gap-1 shrink-0">
+            {quadOpen ? "Свернуть" : "Развернуть"}
+            <ChevronDown className={cn("h-3 w-3 transition-transform", quadOpen && "rotate-180")} />
+          </span>
+        </button>
+        <div className={cn("grid grid-cols-2 gap-2 lg:gap-3", !quadOpen && "hidden lg:grid")}>
           {(["stars", "potential", "danger", "weak"] as Quadrant[]).map(q => {
             const items = enriched.filter(m => m.quadrant === q);
             const sales = items.reduce((s, m) => s + m.fact, 0);
@@ -417,25 +483,26 @@ export default function Managers() {
                   <div className="flex justify-between"><span className="text-muted-foreground">Маржа</span><span className="num">{formatShort(margin)}</span></div>
                   <div className="flex justify-between"><span className="text-muted-foreground">Просрочка</span><span className={cn("num", overdue > 0 && "text-destructive")}>{formatShort(overdue)}</span></div>
                 </div>
-                {items.length > 0 && (
-                  <div className="mt-2 pt-2 border-t border-border/60 space-y-1">
-                    {items.slice(0, 2).map(m => (
-                      <Link key={m.id} to={`/managers/${m.id}`} className="block text-[11px] lg:text-xs hover:text-accent truncate">
-                        {m.name}
-                      </Link>
-                    ))}
-                  </div>
-                )}
               </div>
             );
           })}
         </div>
       </section>
 
-      {/* 3. Сегменты команды */}
+      {/* 5. Сегменты команды — свёрнуты на mobile */}
       <section className="mb-5">
-        <h2 className="font-display text-base lg:text-lg font-semibold mb-3">Сегменты команды</h2>
-        <div className="grid gap-2 lg:gap-3 lg:grid-cols-2">
+        <button
+          type="button"
+          onClick={() => setSegOpen(o => !o)}
+          className="w-full flex items-center justify-between gap-2 mb-3 lg:cursor-default"
+        >
+          <h2 className="font-display text-base lg:text-lg font-semibold">Дополнительные сегменты</h2>
+          <span className="lg:hidden text-[11px] text-muted-foreground inline-flex items-center gap-1">
+            {segOpen ? "Свернуть" : "Развернуть"}
+            <ChevronDown className={cn("h-3 w-3 transition-transform", segOpen && "rotate-180")} />
+          </span>
+        </button>
+        <div className={cn("grid gap-2 lg:gap-3 lg:grid-cols-2", !segOpen && "hidden lg:grid")}>
           {segGroups.filter(g => g.items.length > 0).map(g => {
             const meta = SEGMENTS[g.key];
             const Icon = meta.icon;
@@ -455,69 +522,29 @@ export default function Managers() {
                 </div>
                 <div className="mt-2 text-xs"><span className="text-muted-foreground">Симптом: </span>{meta.symptom}</div>
                 <div className="text-xs"><span className="text-muted-foreground">Действие: </span>{meta.action}</div>
-                <div className="mt-2 pt-2 border-t border-border/60 flex flex-wrap gap-x-3 gap-y-1">
-                  {g.items.map(m => (
-                    <Link key={m.id} to={`/managers/${m.id}`} className="text-xs hover:text-accent">
-                      {m.name}
-                    </Link>
-                  ))}
-                </div>
               </div>
             );
           })}
         </div>
       </section>
 
-      {/* 4. Топ-5 для разбора */}
+      {/* 6. Взаимосвязи — свёрнуты на mobile, без дублей с «Объём × Маржа» */}
       <section className="mb-5">
-        <h2 className="font-display text-base lg:text-lg font-semibold mb-3">Топ-5 для разбора</h2>
-        <div className="flex flex-wrap gap-1.5 mb-3">
-          {(Object.keys(topMeta) as (keyof typeof topMeta)[]).map(k => (
-            <button
-              key={k}
-              onClick={() => setTopTab(k)}
-              className={cn(
-                "px-3 py-1.5 rounded-md text-xs border transition-colors",
-                topTab === k ? "bg-accent text-accent-foreground border-accent" : "bg-card border-border hover:bg-muted/40"
-              )}
-            >
-              {topMeta[k].label}
-            </button>
-          ))}
-        </div>
-        <div className="bg-card rounded-lg border border-border shadow-card divide-y divide-border">
-          {topMap[topTab].length === 0 ? (
-            <div className="p-4 text-sm text-muted-foreground">Нет менеджеров по этому критерию.</div>
-          ) : topMap[topTab].map((m, i) => {
-            const meta = topMeta[topTab];
-            return (
-              <Link key={m.id} to={`/managers/${m.id}`} className="flex items-start gap-3 p-3 lg:p-4 hover:bg-muted/30">
-                <div className="text-xs text-muted-foreground num w-5 pt-0.5">{i + 1}</div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="font-medium truncate">{m.name}</div>
-                    <Badge className={riskColor[m.risk]}>{m.risk}</Badge>
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-0.5">{meta.problem(m)}</div>
-                  <div className="text-sm num mt-1 font-semibold">{meta.sum(m)}</div>
-                  <div className="text-[11px] text-muted-foreground mt-0.5">
-                    Причина: {meta.cause(m)} · Действие: {meta.action}
-                  </div>
-                </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />
-              </Link>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* 5. Взаимосвязи */}
-      <section className="mb-5">
-        <h2 className="font-display text-base lg:text-lg font-semibold mb-3">Взаимосвязи показателей</h2>
-        <div className="grid gap-2 lg:gap-3 lg:grid-cols-2">
+        <button
+          type="button"
+          onClick={() => setRelOpen(o => !o)}
+          className="w-full flex items-center justify-between gap-2 mb-3 lg:cursor-default"
+        >
+          <h2 className="font-display text-base lg:text-lg font-semibold">Взаимосвязи показателей</h2>
+          <span className="lg:hidden text-[11px] text-muted-foreground inline-flex items-center gap-1">
+            {relOpen ? "Свернуть" : "Развернуть"}
+            <ChevronDown className={cn("h-3 w-3 transition-transform", relOpen && "rotate-180")} />
+          </span>
+        </button>
+        <div className={cn("grid gap-2 lg:gap-3 lg:grid-cols-2", !relOpen && "hidden lg:grid")}>
           <RelationCard
             icon={<ShieldAlert className="h-4 w-4 text-destructive" />}
-            title="Выручка vs оплаченная выручка"
+            title="Продажи vs деньги"
             insight="Высокие продажи не всегда превращаются в деньги"
             people={[...enriched].sort((a, b) => b.paymentsGap - a.paymentsGap).slice(0, 3)}
             action="перевести часть сделок на предоплату"
@@ -529,17 +556,10 @@ export default function Managers() {
             people={[...enriched].filter(m => m.overdue > 0).sort((a, b) => b.overdue - a.overdue).slice(0, 3)}
             action="разобрать топ-долги вручную"
           />
-          <RelationCard
-            icon={<AlertTriangle className="h-4 w-4 text-warning" />}
-            title="Скидки vs потери маржи"
-            insight={`Сделки ниже порога съедают ${formatShort(summary.marginLoss)} ₽ маржи`}
-            people={[...enriched].filter(m => m.lowMarginDeals > 0).sort((a, b) => b.lowMarginDeals - a.lowMarginDeals).slice(0, 3)}
-            action="проверить условия скидок"
-          />
         </div>
       </section>
 
-      {/* 6. Полный список менеджеров */}
+      {/* 7. Полный список менеджеров */}
       <section className="mb-5">
         <button
           onClick={() => setShowAll(s => !s)}
