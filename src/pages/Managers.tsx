@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { managers, formatShort, riskColor, type Manager } from "@/data/demo";
 import { Card, PageHeader, Badge, ProgressBar } from "@/components/ui-bits";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ChevronDown, ChevronRight, Search, Star, AlertTriangle,
   TrendingDown, Clock, PauseCircle, ShieldAlert, Users, ArrowRight,
