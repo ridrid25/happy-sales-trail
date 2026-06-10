@@ -647,30 +647,55 @@ export default function Managers() {
         <div className={cn("mt-3 lg:mt-0", !moreOpen && "hidden lg:block")}>
           {(() => {
             const tabs: { key: MoreKey; short: string; label: string }[] = [
-              { key: "summary", short: "Сводка",   label: "Сводка команды" },
-              { key: "quad",    short: "Качество", label: "Объём × качество" },
-              { key: "seg",     short: "Сегменты", label: "Сегменты" },
-              { key: "rel",     short: "Связи",    label: "Взаимосвязи показателей" },
-              { key: "all",     short: "Все",      label: "Все менеджеры" },
+              { key: "summary", short: "Сводка",    label: "Сводка команды" },
+              { key: "quad",    short: "Качество",  label: "Объём × качество" },
+              { key: "seg",     short: "Сегменты",  label: "Сегменты" },
+              { key: "rel",     short: "Связи",     label: "Взаимосвязи показателей" },
+              { key: "all",     short: "Менеджеры", label: "Все менеджеры" },
             ];
-            const onPick = (k: MoreKey) => {
-              setMoreTab(k);
+            const sectionTitles: Record<MoreKey, string> = {
+              summary: "Сводка команды",
+              quad:    "Объём × качество",
+              seg:     "Сегменты команды",
+              rel:     "Связи показателей",
+              all:     "Менеджеры",
+            };
+            const scrollToContent = () => {
               requestAnimationFrame(() => requestAnimationFrame(() => {
                 moreContentRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
               }));
             };
+            const scrollToHeader = () => {
+              requestAnimationFrame(() => requestAnimationFrame(() => {
+                moreHeaderRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }));
+            };
+            const onPick = (k: MoreKey) => {
+              setMoreTab(k);
+              setMoreMobileView(k);
+              scrollToContent();
+            };
+            const backToGrid = () => {
+              setMoreMobileView("grid");
+              scrollToHeader();
+            };
+            const closeMore = () => {
+              setMoreOpen(false);
+              setMoreMobileView("grid");
+              scrollToHeader();
+            };
             return (
               <div className="bg-card rounded-lg border border-border shadow-card overflow-hidden">
-                {/* Mobile: компактная сетка кнопок (3+2) */}
-                <div className="lg:hidden border-b border-border p-2">
-                  <div className="grid grid-cols-3 gap-1.5">
+                {/* Mobile: ровная сетка 2 колонки (5 разделов + Закрыть) */}
+                <div className={cn("lg:hidden border-b border-border p-2", moreMobileView !== "grid" && "hidden")}>
+                  <div className="grid grid-cols-2 gap-1.5">
                     {tabs.map(t => (
                       <button
                         key={t.key}
                         type="button"
                         onClick={() => onPick(t.key)}
                         className={cn(
-                          "px-2 py-2 rounded-md text-xs border transition-colors text-center leading-tight",
+                          "px-2 py-2.5 rounded-md text-xs border transition-colors text-center leading-tight",
                           moreTab === t.key
                             ? "bg-accent text-accent-foreground border-accent font-medium"
                             : "bg-background border-border hover:bg-muted/40"
@@ -679,8 +704,16 @@ export default function Managers() {
                         {t.short}
                       </button>
                     ))}
+                    <button
+                      type="button"
+                      onClick={closeMore}
+                      className="px-2 py-2.5 rounded-md text-xs border border-border bg-background hover:bg-muted/40 text-muted-foreground"
+                    >
+                      Закрыть
+                    </button>
                   </div>
                 </div>
+
                 {/* Desktop: табы */}
                 <div className="hidden lg:block border-b border-border p-2">
                   <div className="flex flex-wrap gap-1.5">
@@ -688,7 +721,7 @@ export default function Managers() {
                       <button
                         key={t.key}
                         type="button"
-                        onClick={() => onPick(t.key)}
+                        onClick={() => { setMoreTab(t.key); scrollToContent(); }}
                         className={cn(
                           "px-3 py-1.5 rounded-md text-xs border transition-colors",
                           moreTab === t.key
@@ -702,9 +735,28 @@ export default function Managers() {
                   </div>
                 </div>
 
+                {/* Mobile: шапка раздела с возвратом */}
+                <div
+                  ref={moreContentRef}
+                  className={cn(
+                    "scroll-mt-24",
+                    moreMobileView === "grid" && "hidden lg:block"
+                  )}
+                >
+                  <div className="lg:hidden flex items-center justify-between gap-2 border-b border-border px-3 py-2">
+                    <button
+                      type="button"
+                      onClick={backToGrid}
+                      className="text-xs text-accent hover:underline shrink-0"
+                    >
+                      ← К разделам
+                    </button>
+                    <span className="font-display font-semibold text-sm truncate">
+                      {sectionTitles[moreTab]}
+                    </span>
+                  </div>
+                  <div className="p-3 lg:p-4">
 
-
-                <div ref={moreContentRef} className="p-3 lg:p-4 scroll-mt-24">
                   {moreTab === "summary" && (
                     <div>
                       <h3 className="font-display font-semibold text-sm mb-2">Сводка команды</h3>
