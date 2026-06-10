@@ -8,7 +8,7 @@ import {
   type Deal,
 } from "@/data/demo";
 import { Card, PageHeader, Badge, EmptyState } from "@/components/ui-bits";
-import { Filter, SearchX, ChevronDown, ChevronUp, ArrowUp, X, MousePointerClick } from "lucide-react";
+import { Filter, SearchX, ChevronDown, ChevronUp, ArrowUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 
