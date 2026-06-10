@@ -441,13 +441,9 @@ export default function Deals() {
   );
 }
 
-type PointPayload = { x?: number; y?: number; amount?: number };
-function PointTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: PointPayload }> }) {
-  if (!active || !payload?.length) return null;
-  const p = payload[0].payload;
-  const margin = Math.round(p.x ?? 0);
-  const idle = Math.round(p.y ?? 0);
-  const amount = p.amount ?? 0;
+function PointTooltip({ x, y, amount }: { x: number; y: number; amount: number }) {
+  const margin = Math.round(x);
+  const idle = Math.round(y);
   const zone = pointZoneLabel(margin, idle);
   return (
     <div
