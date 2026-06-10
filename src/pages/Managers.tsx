@@ -110,6 +110,8 @@ export default function Managers() {
       return { key, items, sales, marginLoss, avgMargin };
     });
   }, [enriched]);
+  const teamSales = useMemo(() => enriched.reduce((s, m) => s + m.fact, 0), [enriched]);
+  const teamPlan = useMemo(() => enriched.reduce((s, m) => s + m.plan, 0), [enriched]);
   const [vmOpen, setVmOpen] = useState<VMQuad | null>(null);
   const [vmShowAll, setVmShowAll] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(false);
