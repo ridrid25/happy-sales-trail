@@ -344,15 +344,19 @@ export default function Deals() {
 
       {/* === Панель детализации === */}
       <div ref={panelRef} className="scroll-mt-24">
-        {active && <DetailPanel
-          filter={active}
-          deals={visiblePanelDeals}
-          total={panelDeals.length}
-          shownAll={shownAll}
-          onShowAll={() => setShownAll(true)}
-          onClose={closePanel}
-          onBackToChart={() => scrollTo(chartRef.current)}
-        />}
+        {active && (
+          <div className="animate-fade-in transition-all duration-200">
+            <DetailPanel
+              filter={active}
+              deals={visiblePanelDeals}
+              total={panelDeals.length}
+              shownAll={shownAll}
+              onShowAll={() => setShownAll(true)}
+              onClose={closePanel}
+              onBackToChart={() => scrollTo(chartRef.current)}
+            />
+          </div>
+        )}
       </div>
 
       {/* === Детализация === */}
