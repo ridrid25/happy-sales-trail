@@ -117,7 +117,7 @@ export default function Deals() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailGroup, setDetailGroup] = useState<FilterKey | null>(null);
   const [detailShownAll, setDetailShownAll] = useState(false);
-  const [selectedPoint, setSelectedPoint] = useState<{ id: string; marginPct: number; idle: number; amount: number } | null>(null);
+  
 
   const chartRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
