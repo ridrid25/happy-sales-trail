@@ -132,24 +132,40 @@ export default function Managers() {
   // Универсальные helpers: проскролл к открытому контенту / возврат к триггеру
   const scrollToEl = (el: HTMLElement | null) => {
     if (!el) return;
+    // двойной rAF гарантирует, что элемент уже отрисован после смены state
     requestAnimationFrame(() => {
-      setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "start" }), 30);
+      requestAnimationFrame(() => {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
     });
   };
+  // Запоминаем триггер, к которому надо вернуться при закрытии
+  const vmReturnRef = useRef<HTMLElement | null>(null);
+  const prioReturnRef = useRef<HTMLElement | null>(null);
+  // После открытия панели — скроллим к ней (когда DOM уже отрисовал)
+  useEffect(() => {
+    if (vmOpen) scrollToEl(vmPanelRef.current);
+  }, [vmOpen]);
+  useEffect(() => {
+    if (prioOpen) scrollToEl(prioContentRef.current);
+  }, [prioOpen]);
+
   const openVm = (key: VMQuad) => {
     const isOpen = vmOpen === key;
     if (isOpen) {
+      const trigger = vmRowRefs.current[key];
       setVmOpen(null);
       setVmShowAll(false);
-      scrollToEl(vmRowRefs.current[key]);
+      scrollToEl(trigger);
     } else {
+      vmReturnRef.current = vmRowRefs.current[key];
       setVmOpen(key);
       setVmShowAll(false);
-      scrollToEl(vmPanelRef.current);
+      // скролл сработает в useEffect, когда панель появится в DOM
     }
   };
   const closeVm = () => {
-    const trigger = vmOpen ? vmRowRefs.current[vmOpen] : null;
+    const trigger = (vmOpen && vmRowRefs.current[vmOpen]) || vmReturnRef.current;
     setVmOpen(null);
     setVmShowAll(false);
     scrollToEl(trigger);
@@ -157,21 +173,23 @@ export default function Managers() {
   const openPrio = (key: PriorityKey) => {
     const isOpen = prioOpen === key;
     if (isOpen) {
+      const trigger = prioRowRefs.current[key];
       setPrioOpen(null);
       setPrioShowAll(false);
-      scrollToEl(prioRowRefs.current[key]);
+      scrollToEl(trigger);
     } else {
+      prioReturnRef.current = prioRowRefs.current[key];
       setPrioOpen(key);
       setPrioShowAll(false);
-      scrollToEl(prioContentRef.current);
     }
   };
   const closePrio = () => {
-    const trigger = prioOpen ? prioRowRefs.current[prioOpen] : null;
+    const trigger = (prioOpen && prioRowRefs.current[prioOpen]) || prioReturnRef.current;
     setPrioOpen(null);
     setPrioShowAll(false);
     scrollToEl(trigger);
   };
+
 
   // ============== Сводка команды ==============
   const summary = useMemo(() => {
