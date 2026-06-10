@@ -7,7 +7,6 @@ import {
   TrendingDown, Clock, PauseCircle, ShieldAlert, Users, ArrowRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 // ============== Управленческие пороги ==============
 const MIN_MARGIN_PCT = 20;          // минимальная допустимая маржа
