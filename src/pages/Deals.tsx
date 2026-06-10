@@ -1,5 +1,4 @@
 import { useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
 import {
   ScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, ReferenceLine, ReferenceArea,
@@ -9,7 +8,7 @@ import {
   type Deal,
 } from "@/data/demo";
 import { Card, PageHeader, Badge, EmptyState } from "@/components/ui-bits";
-import { Filter, SearchX, ChevronDown, ChevronUp, ArrowRight } from "lucide-react";
+import { Filter, SearchX, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // ===== Бизнес-логика риска =====
