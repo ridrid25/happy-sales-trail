@@ -117,6 +117,8 @@ export default function Deals() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailGroup, setDetailGroup] = useState<FilterKey | null>(null);
   const [detailShownAll, setDetailShownAll] = useState(false);
+  const [selectedPt, setSelectedPt] = useState<{ id: string; cx: number; cy: number; x: number; y: number; amount: number } | null>(null);
+  const [hoverPt, setHoverPt] = useState<{ id: string; cx: number; cy: number; x: number; y: number; amount: number } | null>(null);
   
 
   const chartRef = useRef<HTMLDivElement>(null);
