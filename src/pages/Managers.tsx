@@ -90,12 +90,27 @@ export default function Managers() {
     ...m,
     segment: classify(m, median),
     quadrant: quadrant(m, median),
+    vmQuad: vmQuadrant(m, median),
     paidRatio: m.paid / Math.max(m.fact, 1),
     marginLoss: m.marginPct < MIN_MARGIN_PCT
       ? Math.round((MIN_MARGIN_PCT - m.marginPct) / 100 * m.fact)
       : 0,
     paymentsGap: Math.max(0, m.fact - m.paid),
   })), [median]);
+
+  // ============== Группы «Объём × Маржа» ==============
+  const vmGroups = useMemo(() => {
+    return (["vmStars", "vmCheap", "vmPotential", "vmWeak"] as VMQuad[]).map(key => {
+      const items = enriched.filter(m => m.vmQuad === key);
+      const sales = items.reduce((s, m) => s + m.fact, 0);
+      const marginLoss = items.reduce((s, m) => s + m.marginLoss, 0);
+      const avgMargin = items.length
+        ? Math.round(items.reduce((s, m) => s + m.marginPct, 0) / items.length)
+        : 0;
+      return { key, items, sales, marginLoss, avgMargin };
+    });
+  }, [enriched]);
+  const [vmOpen, setVmOpen] = useState<VMQuad | null>(null);
 
   // ============== Сводка команды ==============
   const summary = useMemo(() => {
