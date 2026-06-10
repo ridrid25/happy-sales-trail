@@ -111,6 +111,7 @@ export default function Managers() {
     });
   }, [enriched]);
   const [vmOpen, setVmOpen] = useState<VMQuad | null>(null);
+  const [vmShowAll, setVmShowAll] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(false);
 
   // ============== Сводка команды ==============
