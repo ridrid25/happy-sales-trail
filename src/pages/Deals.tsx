@@ -155,8 +155,12 @@ export default function Deals() {
 
   const scrollTo = (el: HTMLElement | null) => {
     if (!el) return;
+    // Двойной rAF + небольшая задержка, чтобы DOM успел перестроиться
+    // после раскрытия/схлопывания блока — иначе скролл «дёргается».
     requestAnimationFrame(() => requestAnimationFrame(() => {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
+      window.setTimeout(() => {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 60);
     }));
   };
 
