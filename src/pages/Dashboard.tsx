@@ -49,6 +49,24 @@ export default function Dashboard() {
         subtitle={isMobile ? "Май 2026 · Выручка × маржа × оплаты" : "Качество продаж = выручка × маржа × оплаты. Май 2026"}
       />
 
+      <div className="mb-4 flex flex-col sm:flex-row sm:items-center gap-3 rounded-lg border border-accent/30 bg-accent/[0.04] dark:bg-accent/[0.07] px-4 py-3">
+        <div className="min-w-0 flex-1">
+          <div className="text-[10px] uppercase tracking-wider text-accent font-semibold mb-1">Связка РидФинанс</div>
+          <p className="text-[12.5px] text-muted-foreground leading-relaxed">
+            Этот дашборд — пример контроля после настройки целей, KPI и системы мотивации.
+          </p>
+        </div>
+        <a
+          href="https://ridrid25.github.io/Motivation-offer/#diagnostic"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-md bg-accent text-accent-foreground text-[12px] font-semibold hover:opacity-90 transition-opacity shrink-0"
+        >
+          Настроить KPI и мотивацию
+          <ArrowRight className="h-3.5 w-3.5" />
+        </a>
+      </div>
+
 
       {/* Управленческий вывод / Статус */}
       <div id="section-status" className="scroll-mt-32">
