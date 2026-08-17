@@ -2,7 +2,7 @@ import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useState } from "react";
 import {
   LayoutDashboard, Users, Briefcase, GitBranch, Wallet, Building2,
-  Target, ClipboardCheck, LineChart, Menu, X, ShieldCheck, Sun, Moon, Database
+  Target, ClipboardCheck, LineChart, Menu, X, ShieldCheck, Sun, Moon, Database, ArrowUpRight
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/ThemeProvider";
@@ -81,7 +81,7 @@ export default function AppLayout() {
               </div>
               <div className="leading-tight">
                 <div className="font-display font-semibold text-[15px] text-white">Контроль качества продаж</div>
-                <div className="text-[11px] text-white/55 hidden sm:block">Управленческий дашборд</div>
+                <div className="text-[11px] text-white/55 hidden sm:block">Демо-модуль РидФинанс</div>
               </div>
             </div>
           </div>
@@ -178,8 +178,23 @@ export default function AppLayout() {
               </div>
             ))}
           </nav>
-          <div className="p-4 border-t border-sidebar-border text-[11px] text-sidebar-foreground/60">
-            Демо-данные · Май 2026
+          <div className="p-3 border-t border-sidebar-border">
+            <a
+              href="https://ridrid25.github.io/Motivation-offer/#diagnostic"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex items-center gap-2.5 p-2.5 rounded-md border border-sidebar-border bg-white/[0.03] hover:bg-sidebar-accent/60 transition-colors"
+            >
+              <div className="h-8 w-8 rounded-md bg-gold/15 text-gold flex items-center justify-center shrink-0">
+                <Target className="h-4 w-4" />
+              </div>
+              <div className="min-w-0 flex-1 leading-tight">
+                <div className="text-[11px] font-semibold text-white">Настройка KPI и мотивации</div>
+                <div className="text-[10px] text-sidebar-foreground/55 mt-1">Пройти диагностику</div>
+              </div>
+              <ArrowUpRight className="h-3.5 w-3.5 text-sidebar-foreground/50 group-hover:text-gold" />
+            </a>
+            <div className="px-2 pt-3 text-[10px] text-sidebar-foreground/45">Демо-данные · Май 2026</div>
           </div>
         </aside>
 
@@ -215,6 +230,16 @@ export default function AppLayout() {
                   </div>
                 </div>
               ))}
+              <a
+                href="https://ridrid25.github.io/Motivation-offer/#diagnostic"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-3 flex items-center gap-3 px-3 py-3 rounded-md border border-sidebar-border bg-white/[0.04] text-sm hover:bg-sidebar-accent/60"
+              >
+                <Target className="h-4 w-4 text-gold" />
+                <span className="flex-1">Настройка KPI и мотивации</span>
+                <ArrowUpRight className="h-4 w-4 text-sidebar-foreground/50" />
+              </a>
             </aside>
           </div>
         )}
